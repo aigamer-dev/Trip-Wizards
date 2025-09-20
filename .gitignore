@@ -7,7 +7,22 @@
 .buildlog/
 .history
 
-
+# Credentials and API Keys
+.env
+.env.*
+!.env.example
+!.env.template
+**/google-services.json
+**/GoogleService-Info.plist
+**/api_keys.dart
+**/secrets.dart
+**/firebase_options.dart
+**/strings.xml
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+android/app/src/main/res/values/strings.xml
+web/firebase-messaging-sw.js
 
 # Flutter repo-specific
 /bin/cache/
@@ -117,3 +132,5 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+/backend
