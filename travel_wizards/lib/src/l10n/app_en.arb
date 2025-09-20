@@ -1,0 +1,53 @@
+{
+  "@@locale": "en",
+  "appTitle": "Travel Wizards",
+  "searchPlaceholder": "Travel Wizards",
+  "menu": "Menu",
+  "open": "Open",
+  "explore": "Explore",
+  "home": "Home",
+  "settings": "Settings",
+  "generationInProgress": "Generation In Progress",
+  "ongoingTrips": "Ongoing Trips",
+  "plannedTrips": "Planned Trips",
+  "suggestedTrips": "Suggested Trips",
+  "addTrip": "Add Trip",
+  "themeMode": "Theme Mode",
+  "language": "Language",
+  "systemDefault": "System Default",
+  "light": "Light",
+  "dark": "Dark"
+  ,
+  "resultsFor": "Results for",
+  "filters": "Filters",
+  "clearFilters": "Clear filters",
+  "tagWeekend": "Weekend",
+  "tagAdventure": "Adventure",
+  "tagBudget": "Budget",
+  "budgetLow": "Low budget",
+  "budgetMedium": "Medium budget",
+  "budgetHigh": "High budget",
+  "duration2to3": "2–3 days",
+  "duration4to5": "4–5 days",
+  "duration6plus": "6+ days"
+  ,
+  "save": "Save",
+  "unsave": "Unsave",
+  "saveIdea": "Save idea",
+  "unsaveIdea": "Unsave idea",
+  "savedToYourIdeas": "Saved to your ideas",
+  "removedFromYourIdeas": "Removed from your ideas"
+  ,
+  "idea": "Idea",
+  "ideaLabel": "Idea: {title}",
+  "@ideaLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Weekend in Hampi"
+      }
+    }
+  },
+  "ideasFallbackToLocal": "Network issue: showing local ideas",
+  "retry": "Retry"
+}

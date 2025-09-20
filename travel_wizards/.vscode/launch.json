@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Travel Wizards (Android Dev)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["--flavor", "dev", "--dart-define", "ENV=dev"]
+    },
+    {
+      "name": "Travel Wizards (Android Staging)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["--flavor", "stg", "--dart-define", "ENV=stg"]
+    },
+    {
+      "name": "Travel Wizards (Android Prod)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["--flavor", "prod", "--dart-define", "ENV=prod"]
+    }
+  ]
+}
