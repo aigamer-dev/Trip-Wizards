@@ -1,0 +1,50 @@
+{
+  "@@locale": "or",
+  "appTitle": "ଟ୍ରାଭେଲ୍ ୱିଜାର୍ଡସ୍",
+  "searchPlaceholder": "ଟ୍ରାଭେଲ୍ ୱିଜାର୍ଡସ୍",
+  "menu": "ମେନୁ",
+  "open": "ଖୋଲନ୍ତୁ",
+  "explore": "ଏକ୍ସପ୍ଲୋର୍",
+  "home": "ମୂଳ ପୃଷ୍ଠା",
+  "settings": "ସେଟିଙ୍ଗ୍ସ",
+  "generationInProgress": "ଜେନରେସନ୍ ଚାଲିଛି",
+  "ongoingTrips": "ଚାଲୁ ଯାତ୍ରା",
+  "plannedTrips": "ଯୋଜିତ ଯାତ୍ରା",
+  "suggestedTrips": "ପ୍ରସ୍ତାବିତ ଯାତ୍ରା",
+  "addTrip": "ଯାତ୍ରା ଯୋଗ କରନ୍ତୁ",
+  "themeMode": "ଥିମ୍ ମୋଡ୍",
+  "language": "ଭାଷା",
+  "systemDefault": "ସିଷ୍ଟମ୍ ଡିଫଲ୍ଟ",
+  "light": "ଲାଇଟ୍",
+  "dark": "ଡାର୍କ୍",
+  "resultsFor": "ଫଳାଫଳ",
+  "filters": "ଫିଲ୍ଟର୍ସ",
+  "clearFilters": "ଫିଲ୍ଟର୍ସ କ୍ଲିୟାର୍ କରନ୍ତୁ",
+  "tagWeekend": "ସପ୍ତାହାନ୍ତ",
+  "tagAdventure": "ଅଭିଯାନ",
+  "tagBudget": "ବଜେଟ୍",
+  "budgetLow": "କମ୍ ବଜେଟ୍",
+  "budgetMedium": "ମଧ୍ୟମ ବଜେଟ୍",
+  "budgetHigh": "ଉଚ୍ଚ ବଜେଟ୍",
+  "duration2to3": "2–3 ଦିନ",
+  "duration4to5": "4–5 ଦିନ",
+  "duration6plus": "6+ ଦିନ",
+  "save": "ସେଭ୍ କରନ୍ତୁ",
+  "unsave": "ସେଭ୍ ହଟାନ୍ତୁ",
+  "saveIdea": "ଆଇଡିଆ ସେଭ୍ କରନ୍ତୁ",
+  "unsaveIdea": "ଆଇଡିଆ ସେଭ୍ ହଟାନ୍ତୁ",
+  "savedToYourIdeas": "ଆପଣଙ୍କ ଆଇଡିଆରେ ସେଭ୍ ହେଲା",
+  "removedFromYourIdeas": "ଆପଣଙ୍କ ଆଇଡିଆରୁ ହଟାଯାଇଛି",
+  "idea": "ଆଇଡିଆ",
+  "ideaLabel": "ଆଇଡିଆ: {title}",
+  "@ideaLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "ହମ୍ପିରେ ସପ୍ତାହାନ୍ତ"
+      }
+    }
+  },
+  "ideasFallbackToLocal": "ନେଟୱର୍କ ସମସ୍ୟା: ସ୍ଥାନୀୟ ଆଇଡିଆ ଦେଖାଯାଉଛି",
+  "retry": "ପୁନର୍ବାର ଚେଷ୍ଟା କରନ୍ତୁ"
+}

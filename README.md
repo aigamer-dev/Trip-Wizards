@@ -5,6 +5,7 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 ## 🌟 Features
 
 ### Core Travel Planning
+
 - **AI-Powered Trip Planning**: Intelligent destination recommendations and itinerary generation
 - **Real-time Collaboration**: Multi-user trip planning with role-based permissions
 - **Offline Support**: Full offline functionality with automatic sync
@@ -14,6 +15,7 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 - **Trip Sharing**: Multiple sharing methods including QR codes and shareable links
 
 ### Advanced Features
+
 - **Trip Execution**: Real-time trip tracking with check-in/check-out system
 - **Notifications**: Firebase Cloud Messaging for real-time updates
 - **Payment Integration**: Stripe and Google Pay support
@@ -32,6 +34,7 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/aigamer-dev/Trip-Wizards.git
    cd Trip-Wizards
@@ -39,11 +42,13 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
    ```
 
 2. **Install dependencies**
+
    ```bash
    flutter pub get
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp ../.env.template ../.env
    # Edit .env file with your actual credentials
@@ -54,6 +59,7 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 5. **Configure Google Services** (See [Google Services Setup](#google-services-setup))
 
 6. **Run the app**
+
    ```bash
    flutter run
    ```
@@ -63,19 +69,23 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 ### Firebase Setup
 
 1. **Create Firebase Project**
+
    - Go to [Firebase Console](https://console.firebase.google.com/)
    - Create a new project or use existing one
    - Enable Authentication, Firestore, Storage, and Cloud Messaging
 
 2. **Download Configuration Files**
+
    - **Android**: Download `google-services.json`
+
      ```bash
-     # Place in: travel_wizards/android/app/google-services.json
+     # Place in: travel_wizards/android/app/google-services.json OR
      cp travel_wizards/android/app/google-services.template.json travel_wizards/android/app/google-services.json
      # Edit with your actual configuration
      ```
-   
+
    - **Web**: Get Firebase config object
+
      ```bash
      # Edit web files with your Firebase configuration
      cp travel_wizards/web/index.template.html travel_wizards/web/index.html
@@ -84,12 +94,14 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
      ```
 
 3. **Configure Firebase Options**
+
    ```bash
    cp travel_wizards/lib/firebase_options.template.dart travel_wizards/lib/firebase_options.dart
    # Edit with your Firebase configuration
    ```
 
 4. **Update .env file**
+
    ```env
    FIREBASE_PROJECT_ID=your-project-id
    FIREBASE_WEB_API_KEY=your-web-api-key
@@ -104,27 +116,35 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 ### Google Services Setup
 
 1. **Google Maps API**
+
    - Enable Maps SDK for Android/iOS in Google Cloud Console
    - Create API key and restrict to your app
    - Update `.env`:
+
      ```env
      GOOGLE_MAPS_API_KEY=your-maps-api-key
      GOOGLE_MAPS_WEB_API_KEY=your-web-maps-api-key
      ```
+
    - Update Android strings:
+
      ```bash
      cp travel_wizards/android/app/src/main/res/values/strings.template.xml travel_wizards/android/app/src/main/res/values/strings.xml
      # Replace YOUR_GOOGLE_MAPS_API_KEY with your actual key
      ```
+
    - Update web index.html:
+
      ```bash
      # In travel_wizards/web/index.html, replace YOUR_GOOGLE_MAPS_API_KEY
      ```
 
 2. **Google Translate API**
+
    - Enable Cloud Translation API in Google Cloud Console
    - Create service account and download JSON key OR use API key
    - Update `.env`:
+
      ```env
      GOOGLE_TRANSLATE_API_KEY=your-translate-api-key
      ```
@@ -135,6 +155,7 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
    - Create Stripe account at [stripe.com](https://stripe.com)
    - Get publishable and secret keys from Dashboard > Developers > API keys
    - Update `.env`:
+
      ```env
      STRIPE_PUBLISHABLE_KEY=pk_test_your-publishable-key
      STRIPE_SECRET_KEY=sk_test_your-secret-key
@@ -178,7 +199,7 @@ PLACES_API_KEY=your-places-api-key
 
 ## 🏗️ Project Structure
 
-```
+```tree
 travel_wizards/
 ├── lib/
 │   ├── src/
@@ -214,6 +235,7 @@ The following files contain sensitive information and should be created from the
 ### Template Files (Safe to Commit)
 
 Template files are provided for all sensitive configurations:
+
 - `.env.template`
 - `travel_wizards/lib/firebase_options.template.dart`
 - `travel_wizards/android/app/google-services.template.json`
@@ -265,6 +287,7 @@ flutter test --coverage
 ## 🔨 Building
 
 ### Development Build
+
 ```bash
 flutter run --debug
 ```
@@ -272,21 +295,25 @@ flutter run --debug
 ### Production Build
 
 **Android APK:**
+
 ```bash
 flutter build apk --release
 ```
 
 **Android App Bundle:**
+
 ```bash
 flutter build appbundle --release
 ```
 
 **Web:**
+
 ```bash
 flutter build web --release
 ```
 
 ### Build with Environment Variables
+
 ```bash
 flutter build apk --release \
   --dart-define=STRIPE_PUBLISHABLE_KEY=pk_live_xxx \
@@ -297,6 +324,7 @@ flutter build apk --release \
 ## 🚀 Deployment
 
 ### Firebase Hosting (Web)
+
 ```bash
 npm install -g firebase-tools
 firebase login
@@ -306,11 +334,13 @@ firebase deploy
 ```
 
 ### Google Play Store (Android)
+
 1. Create signed AAB: `flutter build appbundle --release`
 2. Upload to Google Play Console
 3. Configure store listing and metadata
 
 ### App Store (iOS)
+
 1. Build in Xcode with release configuration
 2. Archive and upload to App Store Connect
 3. Configure app metadata and submit for review
@@ -320,25 +350,30 @@ firebase deploy
 ### Common Issues
 
 **Build Errors:**
+
 - Ensure all environment variables are set in `.env`
 - Check Flutter doctor: `flutter doctor`
 - Clean and rebuild: `flutter clean && flutter pub get`
 
 **Firebase Issues:**
+
 - Verify configuration files are in correct locations
 - Check Firebase project settings match your `.env` values
 - Ensure all required services are enabled in Firebase Console
 
 **Maps Not Loading:**
+
 - Verify Google Maps API key is correct and unrestricted for development
 - Check API key restrictions in Google Cloud Console for production
 - Ensure Maps SDK is enabled for your platform
 
 **Permission Errors:**
+
 - Check Android permissions in `android/app/src/main/AndroidManifest.xml`
 - Verify iOS permissions in `ios/Runner/Info.plist`
 
 ### Getting Help
+
 - Create an issue on GitHub with detailed error information
 - Check existing issues for solutions
 - Review Flutter and Firebase documentation
@@ -354,6 +389,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 ## 📊 Performance Features
 
 The app includes comprehensive performance monitoring:
+
 - Widget caching for improved rendering
 - Image optimization and lazy loading
 - Efficient state management with proper disposal
@@ -362,6 +398,6 @@ The app includes comprehensive performance monitoring:
 
 ---
 
-**Built with ❤️ using Flutter**
+### Built with ❤️ using Flutter
 
 For questions or support, please create an issue on GitHub.

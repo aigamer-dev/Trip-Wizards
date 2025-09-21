@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Production configuration -->
+    <domain-config cleartextTrafficPermitted="false">
+        <!-- Firebase and Google APIs -->
+        <domain includeSubdomains="true">firebase.googleapis.com</domain>
+        <domain includeSubdomains="true">firebaseapp.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <domain includeSubdomains="true">google.com</domain>
+        <domain includeSubdomains="true">gstatic.com</domain>
+        
+        <!-- Maps APIs -->
+        <domain includeSubdomains="true">maps.googleapis.com</domain>
+        <domain includeSubdomains="true">maps.gstatic.com</domain>
+        
+        <!-- Payment providers -->
+        <domain includeSubdomains="true">stripe.com</domain>
+        <domain includeSubdomains="true">js.stripe.com</domain>
+        
+        <!-- Travel APIs (add your backend domain here) -->
+        <!-- <domain includeSubdomains="true">your-api-domain.com</domain> -->
+        
+        <!-- Pin certificates for critical services -->
+        <pin-set expiration="2026-01-01">
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+            <!-- Add actual certificate pins for production -->
+        </pin-set>
+    </domain-config>
+    
+    <!-- Debug configuration -->
+    <debug-overrides>
+        <trust-anchors>
+            <!-- Trust user added CAs for debugging -->
+            <certificates src="user"/>
+            <certificates src="system"/>
+        </trust-anchors>
+    </debug-overrides>
+    
+    <!-- Base configuration -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+</network-security-config>

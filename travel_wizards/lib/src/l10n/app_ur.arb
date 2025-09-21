@@ -1,0 +1,50 @@
+{
+  "@@locale": "ur",
+  "appTitle": "ٹریول وزارڈز",
+  "searchPlaceholder": "ٹریول وزارڈز",
+  "menu": "مینیو",
+  "open": "کھولیں",
+  "explore": "ایکسپلور",
+  "home": "ہوم",
+  "settings": "سیٹنگز",
+  "generationInProgress": "جنریشن جاری ہے",
+  "ongoingTrips": "جاری سفر",
+  "plannedTrips": "منصوبہ بند سفر",
+  "suggestedTrips": "تجویز کردہ سفر",
+  "addTrip": "سفر شامل کریں",
+  "themeMode": "تھیم موڈ",
+  "language": "زبان",
+  "systemDefault": "سسٹم ڈیفالٹ",
+  "light": "لائٹ",
+  "dark": "ڈارک",
+  "resultsFor": "کے نتائج",
+  "filters": "فلٹرز",
+  "clearFilters": "فلٹرز صاف کریں",
+  "tagWeekend": "ویک اینڈ",
+  "tagAdventure": "ایڈونچر",
+  "tagBudget": "بجٹ",
+  "budgetLow": "کم بجٹ",
+  "budgetMedium": "درمیانہ بجٹ",
+  "budgetHigh": "زیادہ بجٹ",
+  "duration2to3": "2–3 دن",
+  "duration4to5": "4–5 دن",
+  "duration6plus": "6+ دن",
+  "save": "محفوظ کریں",
+  "unsave": "محفوظی ہٹائیں",
+  "saveIdea": "آئیڈیا محفوظ کریں",
+  "unsaveIdea": "آئیڈیا محفوظی ہٹائیں",
+  "savedToYourIdeas": "آپ کے آئیڈیاز میں محفوظ ہوا",
+  "removedFromYourIdeas": "آپ کے آئیڈیاز سے ہٹا دیا گیا",
+  "idea": "آئیڈیا",
+  "ideaLabel": "آئیڈیا: {title}",
+  "@ideaLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "ہَمپی میں ویک اینڈ"
+      }
+    }
+  },
+  "ideasFallbackToLocal": "نیٹ ورک مسئلہ: مقامی آئیڈیاز دکھائے جا رہے ہیں",
+  "retry": "دوبارہ کوشش کریں"
+}

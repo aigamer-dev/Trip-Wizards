@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Users root
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Payments under user
+      match /payments/{paymentId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Trips under user
+      match /trips/{tripId} {
+        allow read, write: if isOwner(userId);
+
+        // Bookings as a subcollection of trips
+        match /bookings/{bookingId} {
+          allow read, write: if isOwner(userId);
+        }
+
+        // Tickets as a subcollection of trips
+        match /tickets/{ticketId} {
+          allow read, write: if isOwner(userId);
+        }
+
+        // Packing list or other trip subcollections
+        match /{document=**} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+    }
+
+    // Collection group queries must still be validated per document.
+    // Enforce ownership by requiring the doc to have a uid field matching auth.uid.
+    match /{path=**}/{docId} {
+      allow list, get: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+  }
+}
