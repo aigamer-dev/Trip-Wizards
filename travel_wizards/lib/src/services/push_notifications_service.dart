@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:travel_wizards/src/services/stripe_service.dart';
 import 'package:travel_wizards/src/services/notifications_service.dart';
+import 'error_handling_service.dart';
 
 /// Handles FCM push notifications: permissions, token registration, and
 /// background message handling. Foreground UI is handled by
@@ -65,7 +66,13 @@ class PushNotificationsService {
         NotificationsService.instance.show(
           body.isNotEmpty ? '$title: $body' : title,
         );
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'PushNotificationsService: Display foreground message',
+          showToUser: false,
+        );
+      }
     });
   }
 
@@ -94,7 +101,13 @@ class PushNotificationsService {
       if (token != null) {
         await _saveToken(token);
       }
-    } catch (_) {}
+    } catch (e) {
+      ErrorHandlingService.instance.handleError(
+        e,
+        context: 'PushNotificationsService: Refresh and save FCM token',
+        showToUser: false,
+      );
+    }
   }
 
   Future<void> _saveToken(String token) async {

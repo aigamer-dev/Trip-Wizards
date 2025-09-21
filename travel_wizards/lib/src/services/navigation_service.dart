@@ -119,8 +119,8 @@ class NavigationService {
       );
 
       // Navigate to the selected route
-      final params = _routeParameters[route];
-      // Implementation would depend on your router setup
+      // final params = _routeParameters[route];
+      // Implementation would depend on your router setup; params can be used when wiring router navigation here.
       debugPrint('🍞 Breadcrumb navigation to: $route');
     }
   }

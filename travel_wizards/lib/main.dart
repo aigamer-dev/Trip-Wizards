@@ -1,6 +1,8 @@
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+// Avoid importing dart:io on web; use foundation platform checks instead.
 import 'src/app/app.dart';
 import 'src/app/theme.dart';
 import 'src/app/settings_controller.dart';
@@ -9,7 +11,7 @@ import 'src/services/backend_service.dart';
 import 'package:provider/provider.dart';
 import 'src/data/explore_store.dart';
 import 'src/data/plan_trip_store.dart';
-import 'src/di/service_locator.dart';
+import 'src/di/travel_wizards_service_registry.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,6 +27,8 @@ import 'src/services/performance_optimization_manager.dart';
 import 'src/services/navigation_service.dart';
 import 'src/services/notification_service.dart';
 import 'src/services/emergency_service.dart';
+import 'src/services/android_optimization_service.dart';
+import 'src/services/web_optimization_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,6 +95,23 @@ Future<void> main() async {
     showUserError: false,
   );
 
+  // Initialize platform-specific optimizations
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    await ErrorHandlingService.instance.handleAsync(
+      () => AndroidOptimizationService.instance.initialize(),
+      context: 'Android Optimization Initialization',
+      showUserError: false,
+    );
+  }
+
+  if (kIsWeb) {
+    await ErrorHandlingService.instance.handleAsync(
+      () => WebOptimizationService.instance.initialize(),
+      context: 'Web Optimization Initialization',
+      showUserError: false,
+    );
+  }
+
   // Initialize Firebase (requires valid firebase_options.dart)
   await ErrorHandlingService.instance.handleAsync(
     () =>
@@ -98,6 +119,53 @@ Future<void> main() async {
     context: 'Firebase Initialization',
     showUserError: false,
   );
+
+  // Web: Ensure auth persistence and finalize any pending redirect sign-in
+  if (kIsWeb) {
+    await ErrorHandlingService.instance.handleAsync(
+      () async {
+        try {
+          await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+          debugPrint('✅ [main] Web auth persistence set to LOCAL');
+        } catch (e1) {
+          debugPrint(
+            '⚠️ [main] LOCAL persistence failed: $e1 (trying SESSION)',
+          );
+          try {
+            await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
+            debugPrint('✅ [main] Web auth persistence set to SESSION');
+          } catch (e2) {
+            debugPrint(
+              '⚠️ [main] SESSION persistence failed: $e2 (falling back to NONE)',
+            );
+            try {
+              await FirebaseAuth.instance.setPersistence(Persistence.NONE);
+              debugPrint('✅ [main] Web auth persistence set to NONE');
+            } catch (e3) {
+              debugPrint('🚨 [main] All persistence modes failed: $e3');
+            }
+          }
+        }
+        // Calling getRedirectResult completes pending redirect flows and
+        // ensures authStateChanges will emit the signed-in user on reload.
+        try {
+          final result = await FirebaseAuth.instance.getRedirectResult();
+          if (result.user != null) {
+            debugPrint(
+              '🔁 [main] Redirect sign-in completed for uid=${result.user!.uid}',
+            );
+          } else {
+            debugPrint('ℹ️ [main] No pending redirect result');
+          }
+        } catch (e) {
+          // If there was no redirect or it failed, ignore here; errors are handled in UI.
+          debugPrint('⚠️ [main] getRedirectResult error: $e');
+        }
+      },
+      context: 'Web Auth Persistence & Redirect Finalization',
+      showUserError: false,
+    );
+  }
 
   // Initialize notification service after Firebase
   await ErrorHandlingService.instance.handleAsync(
@@ -132,7 +200,11 @@ Future<void> main() async {
   }
 
   // Set up service locator after core singletons and optional backend are ready.
-  setupServiceLocator();
+  await ErrorHandlingService.instance.handleAsync(
+    () => TravelWizardsServiceRegistry.initialize(),
+    context: 'Service Registry Initialization',
+    showUserError: false,
+  );
 
   // Initialize Google Play Billing (Android only). Ignore failures silently.
   await ErrorHandlingService.instance.handleAsync(
@@ -191,11 +263,7 @@ class TravelWizardsBootstrap extends StatelessWidget {
             ),
           ],
           child: PerformanceOptimizedApp(
-            criticalAssets: const [
-              'assets/images/app_icon.png',
-              'assets/images/default_avatar.png',
-              'assets/images/loading.gif',
-            ],
+            criticalAssets: const [],
             child: TravelWizardsApp(lightScheme: light, darkScheme: dark),
           ),
         );

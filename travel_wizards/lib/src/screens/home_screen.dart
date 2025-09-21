@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
 import 'package:travel_wizards/src/common/widgets/async_builder.dart';
 import 'package:travel_wizards/src/l10n/app_localizations.dart';
+import 'package:travel_wizards/src/models/trip.dart';
 import 'package:travel_wizards/src/services/home_data_service.dart';
+import 'package:travel_wizards/src/widgets/travel_components/trip_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,94 +23,108 @@ class _HomeScreenState extends State<HomeScreen> {
         final width = constraints.maxWidth;
         final isMobile = Breakpoints.isMobile(width);
         final isDesktop = Breakpoints.isDesktop(width);
-        final crossAxisCount = isMobile ? 1 : (isDesktop ? 2 : 2);
+        final crossAxisCount = isMobile ? 1 : (isDesktop ? 3 : 2);
         final padding = isDesktop ? Insets.allXl : Insets.allMd;
 
         return AsyncBuilder<TripCategorization>(
           future: () => HomeDataService.instance.getTrips(),
           builder: (context, categorization) {
-            return GridView.count(
-              crossAxisCount: crossAxisCount,
-              // Make tiles taller to avoid overflow in tests and small screens.
-              childAspectRatio: isDesktop ? 1.8 : (isMobile ? 1.3 : 1.2),
+            // Check if user has any trips
+            final hasAnyTrips =
+                categorization.ongoingTrips.isNotEmpty ||
+                categorization.plannedTrips.isNotEmpty ||
+                categorization.suggestedTrips.isNotEmpty ||
+                categorization.completedTrips.isNotEmpty;
+
+            if (!hasAnyTrips) {
+              return _buildEmptyState(context, t);
+            }
+
+            // Collect all trips to display as cards
+            final List<Trip> allTrips = [
+              ...categorization.ongoingTrips,
+              ...categorization.plannedTrips,
+              ...categorization.suggestedTrips,
+              ...categorization.completedTrips,
+            ];
+
+            return GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                childAspectRatio: isMobile ? 0.8 : 0.75,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
               padding: padding,
-              children: [
-                _HomeCard(
-                  title: t.generationInProgress,
-                  count: 0, // TODO: Add generation progress tracking
-                  subtitle: 'No generations in progress',
-                ),
-                _HomeCard(
-                  title: t.ongoingTrips,
-                  count: categorization.ongoingTrips.length,
-                  subtitle: categorization.hasOngoingTrips
-                      ? '${categorization.ongoingTrips.length} trip${categorization.ongoingTrips.length != 1 ? 's' : ''} in progress'
-                      : 'No ongoing trips',
-                ),
-                _HomeCard(
-                  title: t.plannedTrips,
-                  count: categorization.plannedTrips.length,
-                  subtitle: categorization.hasPlannedTrips
-                      ? '${categorization.plannedTrips.length} trip${categorization.plannedTrips.length != 1 ? 's' : ''} planned'
-                      : 'No planned trips yet',
-                ),
-                _HomeCard(
-                  title: t.suggestedTrips,
-                  count: categorization.suggestedTrips.length,
-                  subtitle: categorization.hasSuggestedTrips
-                      ? '${categorization.suggestedTrips.length} suggestion${categorization.suggestedTrips.length != 1 ? 's' : ''} available'
-                      : 'No suggestions available',
-                ),
-              ],
+              itemCount: allTrips.length,
+              itemBuilder: (context, index) {
+                final trip = allTrips[index];
+                return _buildTripCard(context, trip);
+              },
             );
           },
         );
       },
     );
   }
-}
 
-class _HomeCard extends StatelessWidget {
-  const _HomeCard({
-    required this.title,
-    required this.count,
-    required this.subtitle,
-  });
-
-  final String title;
-  final int count;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, AppLocalizations t) {
     final theme = Theme.of(context);
-    return Card(
+    return Center(
       child: Padding(
-        padding: Insets.allMd,
+        padding: Insets.allXl,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(title, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            if (count > 0) ...[
-              Text(
-                count.toString(),
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-            ],
+            Icon(
+              Icons.luggage_outlined,
+              size: 72,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            Gaps.h16,
             Text(
-              subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              'No Trips planned yet',
+              style: theme.textTheme.headlineSmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
+            ),
+            Gaps.h8,
+            Text(
+              'Add trip to continue',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Gaps.h24,
+            FilledButton.icon(
+              onPressed: () => context.push('/plan-trip'),
+              icon: const Icon(Icons.add),
+              label: const Text('Plan New Trip'),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTripCard(BuildContext context, Trip trip) {
+    // Determine trip status based on dates
+    final now = DateTime.now();
+    final isOngoing = trip.startDate.isBefore(now) && trip.endDate.isAfter(now);
+    final isPast = trip.endDate.isBefore(now);
+    final status = isPast ? 'completed' : (isOngoing ? 'ongoing' : 'planned');
+
+    return TripCard(
+      title: trip.title,
+      destination: trip.destinations.isNotEmpty
+          ? trip.destinations.join(', ')
+          : 'No destinations',
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      status: status,
+      description: trip.notes,
+      onTap: () => context.push('/trips/${trip.id}'),
+      showActions: false, // Don't show favorite button on home screen
     );
   }
 }

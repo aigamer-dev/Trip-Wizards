@@ -4,10 +4,15 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:permission_handler/permission_handler.dart'
     show openAppSettings;
 import 'package:travel_wizards/src/services/stripe_service.dart';
+import 'package:travel_wizards/src/services/data_portability_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:travel_wizards/src/config/env.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'dart:io';
 
 class PrivacySettingsScreen extends StatelessWidget {
   const PrivacySettingsScreen({super.key});
@@ -23,6 +28,113 @@ class PrivacySettingsScreen extends StatelessWidget {
           title: const Text('Private mode'),
           subtitle: const Text('Limit data persistence and sharing'),
           onChanged: (v) => settings.setPrivateMode(v),
+        ),
+        ListTile(
+          leading: const Icon(Icons.download_rounded),
+          title: const Text('Export My Data'),
+          subtitle: const Text(
+            'Download all your data as JSON (GDPR portability)',
+          ),
+          onTap: () async {
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Not signed in')));
+              }
+              return;
+            }
+            try {
+              final json = await DataPortabilityService.instance.exportUserData(
+                uid: user.uid,
+              );
+              final dir = await getTemporaryDirectory();
+              final savePath = await FilePicker.platform.saveFile(
+                dialogTitle: 'Save Exported Data',
+                fileName: 'travel_wizards_export.json',
+                type: FileType.custom,
+                allowedExtensions: ['json'],
+                initialDirectory: dir.path,
+              );
+              if (savePath != null) {
+                await File(savePath).writeAsString(json);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Data exported to $savePath')),
+                  );
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Export cancelled')),
+                  );
+                }
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+              }
+            }
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.delete_forever_rounded),
+          title: const Text('Delete My Account & Data'),
+          subtitle: const Text(
+            'Permanently erase all your data (GDPR right to be forgotten)',
+          ),
+          onTap: () async {
+            final user = FirebaseAuth.instance.currentUser;
+            if (user == null) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Not signed in')));
+              }
+              return;
+            }
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Confirm Deletion'),
+                content: const Text(
+                  'This will permanently delete your account and all associated data. This action cannot be undone. Are you sure?',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text('Delete'),
+                  ),
+                ],
+              ),
+            );
+            if (confirmed != true) return;
+            try {
+              await DataPortabilityService.instance.deleteUserData(
+                uid: user.uid,
+              );
+              await user.delete();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Account and data deleted.')),
+                );
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Deletion failed: $e')));
+              }
+            }
+          },
         ),
         const Divider(),
         const _SectionHeader('Notifications'),

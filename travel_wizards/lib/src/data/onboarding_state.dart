@@ -18,6 +18,9 @@ class OnboardingState extends ChangeNotifier {
 
   void start() {
     _authSub ??= FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (kDebugMode) {
+        debugPrint('👂 OnboardingState: auth change => ${user?.uid ?? 'null'}');
+      }
       _userDocSub?.cancel();
       _userDocSub = null;
       if (user == null) {
@@ -32,6 +35,9 @@ class OnboardingState extends ChangeNotifier {
         (snap) {
           final data = snap.data();
           final v = (data?['hasOnboarded'] as bool?) ?? false;
+          if (kDebugMode) {
+            debugPrint('📄 OnboardingState: user doc changed, hasOnboarded=$v');
+          }
           if (_hasOnboarded != v) {
             _hasOnboarded = v;
             notifyListeners();

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
 import 'package:travel_wizards/src/services/auth_service.dart';
@@ -12,11 +15,34 @@ class LoginLandingScreen extends StatefulWidget {
 
 class _LoginLandingScreenState extends State<LoginLandingScreen> {
   bool _isSigningIn = false;
+  StreamSubscription<User?>? _authSub;
 
   @override
   void initState() {
     super.initState();
     _completePendingRedirect();
+    // If user is already signed in, navigate away immediately
+    final current = FirebaseAuth.instance.currentUser;
+    if (current != null) {
+      debugPrint(
+        '🚪 Login screen opened but already signed in as ${current.uid}, navigating to /',
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) GoRouter.of(context).go('/');
+      });
+    }
+
+    // If auth state changes (e.g., after redirect), navigate away from login
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      debugPrint(
+        '🔔 authStateChanges in LoginLandingScreen: user=${user?.uid ?? 'null'}',
+      );
+      if (!mounted) return;
+      if (user != null) {
+        // Let GoRouter's redirect logic choose target (home/onboarding)
+        GoRouter.of(context).go('/');
+      }
+    });
   }
 
   Future<void> _completePendingRedirect() async {
@@ -28,6 +54,12 @@ class _LoginLandingScreenState extends State<LoginLandingScreen> {
     } finally {
       if (mounted) setState(() => _isSigningIn = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -134,23 +166,29 @@ class _LoginLandingScreenState extends State<LoginLandingScreen> {
                                       );
                                       final router = GoRouter.of(context);
                                       try {
-                                        final result = await AuthService
-                                            .instance
-                                            .signInWithGoogle();
-                                        if (result == null) {
+                                        if (kIsWeb) {
+                                          // Use redirect-only on web to avoid popup blockers/cookie issues
+                                          await AuthService.instance
+                                              .signInWithGoogleRedirect();
                                           messenger.showSnackBar(
                                             const SnackBar(
                                               content: Text(
-                                                'Sign-in cancelled',
+                                                'Redirecting to Google for sign-in...',
                                               ),
                                             ),
                                           );
-                                        } else {
-                                          final name =
+                                          return; // auth listener will navigate after redirect completes
+                                        }
+
+                                        final result = await AuthService
+                                            .instance
+                                            .signInWithGoogle();
+                                        if (result != null) {
+                                          final String name =
                                               result.profile?['name'] ??
                                               result.user.displayName ??
                                               'User';
-                                          final email =
+                                          final String email =
                                               result.profile?['email'] ??
                                               result.user.email ??
                                               '';
@@ -161,7 +199,16 @@ class _LoginLandingScreenState extends State<LoginLandingScreen> {
                                               ),
                                             ),
                                           );
-                                          router.go('/');
+                                          router.goNamed('home');
+                                        } else {
+                                          // On web, null indicates redirect flow; auth listener above will navigate
+                                          messenger.showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Continuing sign-in in browser...',
+                                              ),
+                                            ),
+                                          );
                                         }
                                       } catch (e) {
                                         messenger.showSnackBar(

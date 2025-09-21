@@ -68,8 +68,15 @@ class EmergencyService {
   /// Request necessary permissions for emergency services
   Future<void> _requestPermissions() async {
     try {
-      // Request contacts permission
-      if (await FlutterContacts.requestPermission()) {
+      // Skip permission requests on web where plugins may be unavailable
+      if (kIsWeb) {
+        debugPrint('🆘 Skipping contact/location permission requests on web');
+        return;
+      }
+
+      // Request contacts permission (mobile platforms)
+      final contactsGranted = await FlutterContacts.requestPermission();
+      if (contactsGranted) {
         debugPrint('🆘 Contacts permission granted');
       }
 

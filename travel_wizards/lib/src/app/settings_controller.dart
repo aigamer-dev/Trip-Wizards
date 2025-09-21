@@ -103,7 +103,13 @@ class AppSettings extends ChangeNotifier {
     if (!_remoteSyncInProgress && FirebaseAuth.instance.currentUser != null) {
       try {
         await SettingsRepository.instance.pushSettings(this);
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'AppSettings: Remote sync after locale change',
+          showToUser: false,
+        );
+      }
     }
   }
 
@@ -115,7 +121,13 @@ class AppSettings extends ChangeNotifier {
     if (!_remoteSyncInProgress && FirebaseAuth.instance.currentUser != null) {
       try {
         await SettingsRepository.instance.pushSettings(this);
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'AppSettings: Remote sync after remote ideas setting change',
+          showToUser: false,
+        );
+      }
     }
   }
 
@@ -127,7 +139,13 @@ class AppSettings extends ChangeNotifier {
     if (!_remoteSyncInProgress && FirebaseAuth.instance.currentUser != null) {
       try {
         await SettingsRepository.instance.pushSettings(this);
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'AppSettings: Remote sync after wifi sync setting change',
+          showToUser: false,
+        );
+      }
     }
   }
 
@@ -139,7 +157,13 @@ class AppSettings extends ChangeNotifier {
     if (!_remoteSyncInProgress && FirebaseAuth.instance.currentUser != null) {
       try {
         await SettingsRepository.instance.pushSettings(this);
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'AppSettings: Remote sync after private mode change',
+          showToUser: false,
+        );
+      }
     }
   }
 
@@ -151,7 +175,14 @@ class AppSettings extends ChangeNotifier {
     if (!_remoteSyncInProgress && FirebaseAuth.instance.currentUser != null) {
       try {
         await SettingsRepository.instance.pushSettings(this);
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context:
+              'AppSettings: Remote sync after notifications setting change',
+          showToUser: false,
+        );
+      }
     }
   }
 
@@ -163,7 +194,13 @@ class AppSettings extends ChangeNotifier {
     if (!_remoteSyncInProgress && FirebaseAuth.instance.currentUser != null) {
       try {
         await SettingsRepository.instance.pushSettings(this);
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'AppSettings: Remote sync after subscription tier change',
+          showToUser: false,
+        );
+      }
     }
   }
 }

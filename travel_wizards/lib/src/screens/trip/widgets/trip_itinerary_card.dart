@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
+import '../../../services/error_handling_service.dart';
 
 /// A card widget that displays the trip itinerary.
 ///
@@ -113,7 +114,13 @@ class TripItineraryCard extends StatelessWidget {
     if (v is String) {
       try {
         return DateTime.parse(v);
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'TripItineraryCard: Parse date from string',
+          showToUser: false,
+        );
+      }
     }
     return null;
   }

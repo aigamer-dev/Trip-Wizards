@@ -23,7 +23,7 @@ class _NavShellState extends State<NavShell> with NavigationAware {
   static int selectedIndex = 0;
   static String pageName = '';
   static bool showBackButton = true;
-  static bool showBreadcrumbs = false;
+  // Breadcrumbs are currently unused; keep scaffold simple for hackathon build.
 
   @override
   Widget build(BuildContext context) {

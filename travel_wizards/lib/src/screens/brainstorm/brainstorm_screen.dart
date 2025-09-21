@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
 import 'package:travel_wizards/src/data/brainstorm_session_store.dart';
@@ -16,14 +17,15 @@ class BrainstormScreen extends StatefulWidget {
 class _BrainstormScreenState extends State<BrainstormScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
   final List<String> _messages = <String>[
     'Welcome to Travel Wizards AI brainstorm!',
   ];
   bool _sessionActive = false;
   static const List<String> _suggestions = <String>[
     'Weekend trip to Goa under ₹20k',
-    'Family vacation in Manali for 5 days',
-    'Backpacking in Himachal on a budget',
+    'Book Flights, Hotels, and Activities for 2 days this weekend',
+    'Give me a full itinerary',
     'Romantic getaway near Udaipur',
     'Food tour in Hyderabad for 2 days',
   ];
@@ -31,21 +33,31 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
   @override
   void initState() {
     super.initState();
-    BrainstormSessionStore.instance.load().then((_) async {
-      if (!mounted) return;
-      setState(() => _sessionActive = BrainstormSessionStore.instance.isActive);
-      if (!BrainstormSessionStore.instance.isActive) {
-        await BrainstormSessionStore.instance.start();
-        if (!mounted) return;
-        setState(() => _sessionActive = true);
-      }
-    });
+    BrainstormService.instance.initialize();
+
+    // On web, ensure the text field can receive focus
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusNode.requestFocus();
+      });
+    }
+
+    // BrainstormSessionStore.instance.load().then((_) async {
+    //   if (!mounted) return;
+    //   setState(() => _sessionActive = BrainstormSessionStore.instance.isActive);
+    //   if (!BrainstormSessionStore.instance.isActive) {
+    //     await BrainstormSessionStore.instance.start();
+    //     if (!mounted) return;
+    //     setState(() => _sessionActive = true);
+    //   }
+    // });
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -57,9 +69,12 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
       _controller.clear();
     });
     _scrollToBottom();
+    _messages.add('...');
     BrainstormService.instance.send(text).then((resp) {
       if (!mounted) return;
-      setState(() => _messages.add(resp));
+      setState(() {
+        _messages.last = resp;
+      });
       _scrollToBottom();
     });
   }
@@ -124,7 +139,7 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
                   ),
                   onPressed: () async {
                     if (_sessionActive) {
-                      await BrainstormSessionStore.instance.end();
+                      // await BrainstormSessionStore.instance.end();
                       if (!mounted) return;
                       setState(() {
                         _sessionActive = false;
@@ -133,7 +148,7 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
                           ..add('Welcome to Travel Wizards AI brainstorm!');
                       });
                     } else {
-                      await BrainstormSessionStore.instance.start();
+                      await BrainstormService.instance.initialize();
                       if (!mounted) return;
                       setState(() {
                         _sessionActive = true;
@@ -151,7 +166,7 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
                   icon: const Icon(Icons.auto_awesome_rounded),
                   onPressed: () {
                     final lastUser = _messages.reversed.firstWhere(
-                      (m) => !m.startsWith('AI:'),
+                      (m) => !m.startsWith('data:'),
                       orElse: () => '',
                     );
                     final args = PlanTripArgs(
@@ -245,17 +260,26 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: Semantics(
-                    textField: true,
-                    label: 'Message input',
-                    hint: 'Type a message',
-                    excludeSemantics: true,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Ensure focus on web when clicking the text field area
+                      if (kIsWeb) {
+                        _focusNode.requestFocus();
+                      }
+                    },
                     child: TextField(
                       controller: _controller,
+                      focusNode: _focusNode,
                       decoration: const InputDecoration(
                         hintText: 'Type a message...',
+                        label: Text('Your Prompt'),
+                        border: OutlineInputBorder(),
                       ),
                       onSubmitted: (_) => _send(),
+                      textInputAction: TextInputAction.send,
+                      maxLines: null,
+                      keyboardType: TextInputType.multiline,
+                      autofocus: kIsWeb, // Auto-focus on web
                     ),
                   ),
                 ),

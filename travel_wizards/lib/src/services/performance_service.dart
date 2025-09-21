@@ -49,11 +49,6 @@ class PerformanceService {
       ),
     );
 
-    // Log slow operations
-    if (duration > 100) {
-      debugPrint('⚠️ Slow operation: $operationName took ${duration}ms');
-    }
-
     _timers.remove(operationName);
   }
 
@@ -117,16 +112,6 @@ class PerformanceService {
   /// Monitor frame rendering performance
   void startFrameMonitoring() {
     if (!_isProfilingEnabled) return;
-
-    WidgetsBinding.instance.addPersistentFrameCallback((timeStamp) {
-      // Monitor frame times and log slow frames
-      // This is a simplified implementation
-      final frameDuration = timeStamp.inMilliseconds;
-      if (frameDuration > 16) {
-        // 60fps = 16.67ms per frame
-        debugPrint('⚠️ Slow frame: ${frameDuration}ms');
-      }
-    });
   }
 
   /// Optimize images by caching and compression

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:travel_wizards/src/app/settings_controller.dart';
+import 'error_handling_service.dart';
 
 class SettingsRepository {
   SettingsRepository._();
@@ -65,6 +66,12 @@ class SettingsRepository {
     // After applying remote, ensure Firestore has any new local defaults
     try {
       await pushSettings(s);
-    } catch (_) {}
+    } catch (e) {
+      ErrorHandlingService.instance.handleError(
+        e,
+        context: 'SettingsRepository: Push settings after remote sync',
+        showToUser: false,
+      );
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
 import 'package:travel_wizards/src/models/trip.dart';
@@ -58,6 +59,17 @@ class _AddToTripScreenState extends State<AddToTripScreen> {
       ).showSnackBar(const SnackBar(content: Text('Enter a trip name')));
       return;
     }
+
+    // Check authentication first
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to create trips')),
+      );
+      return;
+    }
+
     setState(() => _creating = true);
     try {
       final id = DateTime.now().millisecondsSinceEpoch.toString();
@@ -71,7 +83,10 @@ class _AddToTripScreenState extends State<AddToTripScreen> {
         destinations: const <String>[],
         notes: null,
       );
+
+      debugPrint('Creating trip: ${trip.title} for user: ${user.uid}');
       await TripsRepository.instance.upsertTrip(trip);
+
       if (!mounted) return;
       setState(() => _selectedTripId = id);
       ScaffoldMessenger.of(
@@ -79,6 +94,7 @@ class _AddToTripScreenState extends State<AddToTripScreen> {
       ).showSnackBar(const SnackBar(content: Text('Trip created')));
     } catch (e) {
       if (!mounted) return;
+      debugPrint('Failed to create trip: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to create trip: $e')));

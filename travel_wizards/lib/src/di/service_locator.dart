@@ -7,6 +7,8 @@ import '../services/generation_service.dart';
 import '../data/brainstorm_session_store.dart';
 import '../data/profile_store.dart';
 import '../services/error_handling_service.dart';
+import '../services/social_features_service.dart';
+import '../services/booking_integration_service.dart';
 
 final sl = GetIt.instance;
 
@@ -38,6 +40,14 @@ void setupServiceLocator() {
   }
   if (!sl.isRegistered<ErrorHandlingService>()) {
     sl.registerSingleton<ErrorHandlingService>(ErrorHandlingService.instance);
+  }
+  if (!sl.isRegistered<SocialFeaturesService>()) {
+    sl.registerSingleton<SocialFeaturesService>(SocialFeaturesService());
+  }
+  if (!sl.isRegistered<BookingIntegrationService>()) {
+    final bookingService = BookingIntegrationService.instance;
+    bookingService.initialize(); // Initialize with enhanced API client
+    sl.registerSingleton<BookingIntegrationService>(bookingService);
   }
 }
 

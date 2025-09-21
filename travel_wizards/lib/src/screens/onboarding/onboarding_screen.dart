@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
 import 'package:travel_wizards/src/services/auth_service.dart';
 import 'package:travel_wizards/src/services/translation_service.dart';
+import '../../services/error_handling_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -59,7 +60,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           }
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      ErrorHandlingService.instance.handleError(
+        e,
+        context: 'OnboardingScreen: Load existing profile data',
+        showToUser: false,
+      );
+    }
   }
 
   @override

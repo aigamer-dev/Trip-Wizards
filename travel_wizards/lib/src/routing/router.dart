@@ -16,7 +16,7 @@ import 'package:travel_wizards/src/screens/map/map_screen.dart';
 import 'package:travel_wizards/src/screens/payments/budget_screen.dart';
 import 'package:travel_wizards/src/screens/payments/payment_history_screen.dart';
 import 'package:travel_wizards/src/screens/settings/appearance/appearance_settings_screen.dart';
-import 'package:travel_wizards/src/screens/settings/bookings/bookings_screen.dart';
+import 'package:travel_wizards/src/screens/settings/accessibility_settings_screen.dart';
 import 'package:travel_wizards/src/screens/settings/language/language_settings_screen.dart';
 import 'package:travel_wizards/src/screens/settings/permissions/permissions_screen.dart';
 import 'package:travel_wizards/src/screens/settings/privacy/privacy_settings_screen.dart';
@@ -37,6 +37,10 @@ import 'package:travel_wizards/src/screens/trip/drafts_screen.dart';
 import 'package:travel_wizards/src/screens/trip/trip_execution_screen.dart';
 import 'package:travel_wizards/src/screens/notifications/notifications_screen.dart';
 import 'package:travel_wizards/src/screens/emergency/emergency_screen.dart';
+import 'package:travel_wizards/src/screens/social/social_features_screen.dart';
+import 'package:travel_wizards/src/screens/social/travel_buddies_screen.dart';
+import 'package:travel_wizards/src/screens/booking/booking_details_screen.dart';
+import 'package:travel_wizards/src/screens/booking/enhanced_bookings_screen.dart';
 import 'dart:async';
 
 import 'package:travel_wizards/src/screens/trip/plan_trip_screen.dart';
@@ -58,6 +62,12 @@ final GoRouter appRouter = GoRouter(
   redirect: (context, state) {
     final isLoggedIn = FirebaseAuth.instance.currentUser != null;
     final path = state.uri.path;
+    final hasOnboarded = OnboardingState.instance.hasOnboarded;
+    if (kDebugMode) {
+      debugPrint(
+        '➡️ GoRouter.redirect: path=$path, isLoggedIn=$isLoggedIn, hasOnboarded=$hasOnboarded',
+      );
+    }
     final isAuthRoute = path == '/login' || path == '/email-login';
     final isOnboardingRoute = path == '/onboarding';
 
@@ -74,7 +84,6 @@ final GoRouter appRouter = GoRouter(
     if (isLoggedIn && isAuthRoute) return '/';
 
     // If logged in but hasn't onboarded, force onboarding except on onboarding route
-    final hasOnboarded = OnboardingState.instance.hasOnboarded;
     if ((hasOnboarded == false) && !isOnboardingRoute) {
       return '/onboarding';
     }
@@ -163,7 +172,16 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/bookings',
           name: 'bookings',
-          pageBuilder: (context, state) => fadePage(const BookingsScreen()),
+          pageBuilder: (context, state) =>
+              fadePage(const EnhancedBookingsScreen()),
+        ),
+        GoRoute(
+          path: '/bookings/:id',
+          name: 'booking_details',
+          pageBuilder: (context, state) {
+            final id = state.pathParameters['id'] ?? 'unknown';
+            return fadePage(BookingDetailsScreen(bookingId: id));
+          },
         ),
         GoRoute(
           path: '/tickets',
@@ -219,6 +237,21 @@ final GoRouter appRouter = GoRouter(
           name: 'emergency',
           pageBuilder: (context, state) => fadePage(const EmergencyScreen()),
         ),
+        // Social Features
+        GoRoute(
+          path: '/trips/:id/social',
+          name: 'trip_social',
+          pageBuilder: (context, state) {
+            final id = state.pathParameters['id'] ?? 'unknown';
+            return fadePage(SocialFeaturesScreen(tripId: id));
+          },
+        ),
+        GoRoute(
+          path: '/travel-buddies',
+          name: 'travel_buddies',
+          pageBuilder: (context, state) =>
+              fadePage(const TravelBuddiesScreen()),
+        ),
         // Static information pages
         GoRoute(
           path: '/about',
@@ -262,6 +295,12 @@ final GoRouter appRouter = GoRouter(
           name: 'appearance_settings',
           pageBuilder: (context, state) =>
               fadePage(const AppearanceSettingsScreen()),
+        ),
+        GoRoute(
+          path: '/settings/accessibility',
+          name: 'accessibility_settings',
+          pageBuilder: (context, state) =>
+              fadePage(const AccessibilitySettingsScreen()),
         ),
         GoRoute(
           path: '/settings/privacy',

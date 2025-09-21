@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'error_handling_service.dart';
 
 class InvoiceService {
   InvoiceService._();
@@ -72,7 +73,13 @@ DateTime? _parseDate(dynamic v) {
   if (v is String) {
     try {
       return DateTime.parse(v);
-    } catch (_) {}
+    } catch (e) {
+      ErrorHandlingService.instance.handleError(
+        e,
+        context: 'InvoiceService: Parse date from string',
+        showToUser: false,
+      );
+    }
   }
   return null;
 }

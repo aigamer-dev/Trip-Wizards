@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
+import '../../../services/error_handling_service.dart';
 
 /// A card widget that displays the main trip information.
 ///
@@ -122,7 +123,13 @@ class TripMainInfo extends StatelessWidget {
     if (v is String) {
       try {
         return DateTime.parse(v);
-      } catch (_) {}
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'TripMainInfo: Parse date from string',
+          showToUser: false,
+        );
+      }
     }
     return null;
   }

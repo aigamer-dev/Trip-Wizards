@@ -1,16 +1,22 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:travel_wizards/src/app/settings_controller.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
 import 'package:travel_wizards/src/config/env.dart';
+import 'package:travel_wizards/src/controllers/explore_controller.dart';
 import 'package:travel_wizards/src/data/explore_store.dart';
 import 'package:travel_wizards/src/data/ideas_remote_repository.dart';
 import 'package:travel_wizards/src/data/ideas_repository.dart';
 import 'package:travel_wizards/src/l10n/app_localizations.dart';
-import 'package:travel_wizards/src/screens/trip/plan_trip_screen.dart';
-import 'package:travel_wizards/src/services/performance_optimization_manager.dart';
-import 'package:travel_wizards/src/widgets/optimized/optimized_widgets.dart';
+import 'package:travel_wizards/src/widgets/explore/optimized_explore_widgets.dart';
 
+/// Enhanced explore screen with performance optimizations including:
+/// - Debounced search queries to reduce API calls
+/// - Result caching with TTL for faster repeated searches
+/// - Optimized filter chip rebuilds to improve UI responsiveness
+/// - Pagination support for large datasets
+/// - Efficient widget rebuilding with ListenableBuilder
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
 
@@ -18,432 +24,214 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-class _ExploreScreenState extends State<ExploreScreen>
-    with PerformanceOptimizedScreen {
-  @override
+class _ExploreScreenState extends State<ExploreScreen> {
   String get screenName => 'explore';
 
-  @override
   List<String> get preloadAssets => [
     'assets/images/explore_background.jpg',
     'assets/images/travel_categories.png',
   ];
 
-  final ExploreStore _store = ExploreStore.instance;
-  final IdeasRepository _repo = IdeasRepository.instance;
-  final IdeasRemoteRepository _remote = IdeasRemoteRepository.instance;
-  Future<List<TravelIdea>>? _future;
-  String? _lastQuery;
+  late final ExploreController _controller;
+  late final TextEditingController _searchController;
+  String? _currentQuery;
 
   @override
   void initState() {
     super.initState();
-    _store.load().then((_) => mounted ? setState(() {}) : null);
+
+    // Initialize the enhanced controller
+    _controller = ExploreController(
+      store: ExploreStore.instance,
+      localRepo: IdeasRepository.instance,
+      remoteRepo: IdeasRemoteRepository.instance,
+    );
+
+    _searchController = TextEditingController();
+
+    // Load initial state
+    _initializeScreen();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeScreen() async {
+    final uri = GoRouterState.of(context).uri;
+    final q = uri.queryParameters['q'];
+
+    if (q != null && q.isNotEmpty) {
+      _searchController.text = q;
+      _currentQuery = q;
+    }
+
+    // Perform initial search
+    await _controller.search(
+      query: _currentQuery,
+      useRemote: _shouldUseRemote(),
+    );
+  }
+
+  bool _shouldUseRemote() {
+    return kUseRemoteIdeas && AppSettings.instance.remoteIdeasEnabled;
   }
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-    final uri = GoRouterState.of(context).uri;
-    final q = uri.queryParameters['q'];
-    final useRemote =
-        kUseRemoteIdeas && AppSettings.instance.remoteIdeasEnabled;
-
-    if (useRemote) {
-      if (_lastQuery != q) {
-        _lastQuery = q;
-        _future = _loadIdeas(q);
-      }
-    }
-    _future ??= _loadIdeas(q);
 
     return Padding(
       padding: Insets.allMd,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (q != null && q.isNotEmpty)
-            Text(
-              '${t.resultsFor}: "$q"',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          if (q != null && q.isNotEmpty) Gaps.h16,
-          Semantics(
-            container: true,
-            header: true,
-            label: t.filters,
-            child: Material(
-              type: MaterialType.transparency,
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Tooltip(
-                    message: t.tagWeekend,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.selectedTags.contains('Weekend'),
-                      label: t.tagWeekend,
-                      child: FilterChip(
-                        label: Text(t.tagWeekend),
-                        selected: _store.selectedTags.contains('Weekend'),
-                        onSelected: (_) => setState(() {
-                          _store.toggleTag('Weekend');
-                          if (useRemote) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.tagAdventure,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.selectedTags.contains('Adventure'),
-                      label: t.tagAdventure,
-                      child: FilterChip(
-                        label: Text(t.tagAdventure),
-                        selected: _store.selectedTags.contains('Adventure'),
-                        onSelected: (_) => setState(() {
-                          _store.toggleTag('Adventure');
-                          if (useRemote) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.tagBudget,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.selectedTags.contains('Budget'),
-                      label: t.tagBudget,
-                      child: FilterChip(
-                        label: Text(t.tagBudget),
-                        selected: _store.selectedTags.contains('Budget'),
-                        onSelected: (_) => setState(() {
-                          _store.toggleTag('Budget');
-                          if (useRemote) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.budgetLow,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.filterBudget == 'low',
-                      label: t.budgetLow,
-                      child: ChoiceChip(
-                        label: Text(t.budgetLow),
-                        selected: _store.filterBudget == 'low',
-                        onSelected: (_) => setState(() {
-                          _store.setFilterBudget(
-                            _store.filterBudget == 'low' ? null : 'low',
-                          );
-                          if (useRemote) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.budgetMedium,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.filterBudget == 'medium',
-                      label: t.budgetMedium,
-                      child: ChoiceChip(
-                        label: Text(t.budgetMedium),
-                        selected: _store.filterBudget == 'medium',
-                        onSelected: (_) => setState(() {
-                          _store.setFilterBudget(
-                            _store.filterBudget == 'medium' ? null : 'medium',
-                          );
-                          if (useRemote) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.budgetHigh,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.filterBudget == 'high',
-                      label: t.budgetHigh,
-                      child: ChoiceChip(
-                        label: Text(t.budgetHigh),
-                        selected: _store.filterBudget == 'high',
-                        onSelected: (_) => setState(() {
-                          _store.setFilterBudget(
-                            _store.filterBudget == 'high' ? null : 'high',
-                          );
-                          if (useRemote) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.duration2to3,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.filterDuration == '2-3',
-                      label: t.duration2to3,
-                      child: ChoiceChip(
-                        label: Text(t.duration2to3),
-                        selected: _store.filterDuration == '2-3',
-                        onSelected: (_) => setState(() {
-                          _store.setFilterDuration(
-                            _store.filterDuration == '2-3' ? null : '2-3',
-                          );
-                          if (useRemote) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.duration4to5,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.filterDuration == '4-5',
-                      label: t.duration4to5,
-                      child: ChoiceChip(
-                        label: Text(t.duration4to5),
-                        selected: _store.filterDuration == '4-5',
-                        onSelected: (_) => setState(() {
-                          _store.setFilterDuration(
-                            _store.filterDuration == '4-5' ? null : '4-5',
-                          );
-                          if (kUseRemoteIdeas) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.duration6plus,
-                    child: Semantics(
-                      button: true,
-                      selected: _store.filterDuration == '6+',
-                      label: t.duration6plus,
-                      child: ChoiceChip(
-                        label: Text(t.duration6plus),
-                        selected: _store.filterDuration == '6+',
-                        onSelected: (_) => setState(() {
-                          _store.setFilterDuration(
-                            _store.filterDuration == '6+' ? null : '6+',
-                          );
-                          if (kUseRemoteIdeas) _future = _loadIdeas(q);
-                        }),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: t.clearFilters,
-                    child: Semantics(
-                      button: true,
-                      label: t.clearFilters,
-                      child: TextButton(
-                        onPressed: () => setState(() {
-                          _store.setTags({});
-                          _store.setFilterBudget(null);
-                          _store.setFilterDuration(null);
-                          if (kUseRemoteIdeas) _future = _loadIdeas(q);
-                        }),
-                        child: Text(t.clearFilters),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // Search bar
+          _buildSearchBar(t),
+          Gaps.h16,
+
+          // Results header
+          if (_currentQuery != null && _currentQuery!.isNotEmpty)
+            _buildResultsHeader(t),
+
+          // Filter chips - using optimized widget
+          OptimizedFilterChips(
+            controller: _controller,
+            useRemote: _shouldUseRemote(),
+            onFilterChanged: _onFiltersChanged,
           ),
           Gaps.h8,
+
+          // Performance metrics (debug only)
+          if (kDebugMode) _buildPerformanceMetrics(),
+
+          // Ideas list - using optimized widget
           Expanded(
-            child: useRemote
-                ? FutureBuilder<List<TravelIdea>>(
-                    future: _future,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      List<TravelIdea> ideas;
-                      if (snapshot.hasError) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          final messenger = ScaffoldMessenger.of(context);
-                          messenger.hideCurrentSnackBar();
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: Text(t.ideasFallbackToLocal),
-                              action: SnackBarAction(
-                                label: t.retry,
-                                onPressed: () {
-                                  setState(() {
-                                    _future = _loadIdeas(q);
-                                  });
-                                },
-                              ),
-                            ),
-                          );
-                        });
-                        ideas = _repo.search(
-                          query: q,
-                          tags: _store.selectedTags,
-                          budget: _store.filterBudget,
-                          durationBucket: _store.filterDuration,
-                        );
-                      } else {
-                        ideas = snapshot.data ?? const <TravelIdea>[];
-                      }
-                      return _buildIdeasLayout(context, ideas, t);
-                    },
-                  )
-                : _buildIdeasLayout(
-                    context,
-                    _repo.search(
-                      query: q,
-                      tags: _store.selectedTags,
-                      budget: _store.filterBudget,
-                      durationBucket: _store.filterDuration,
-                    ),
-                    t,
-                  ),
+            child: OptimizedIdeasList(
+              controller: _controller,
+              useRemote: _shouldUseRemote(),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Future<List<TravelIdea>> _loadIdeas(String? q) async {
-    final useRemote =
-        kUseRemoteIdeas && AppSettings.instance.remoteIdeasEnabled;
-    if (useRemote) {
-      try {
-        return await _remote.search(
-          query: q,
-          tags: _store.selectedTags,
-          budget: _store.filterBudget,
-          durationBucket: _store.filterDuration,
-        );
-      } catch (_) {
-        rethrow;
-      }
-    }
-    return _repo.search(
-      query: q,
-      tags: _store.selectedTags,
-      budget: _store.filterBudget,
-      durationBucket: _store.filterDuration,
+  Widget _buildSearchBar(AppLocalizations t) {
+    return Card(
+      child: Padding(
+        padding: Insets.allMd,
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search travel ideas...',
+                  border: InputBorder.none,
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: _clearSearch,
+                        )
+                      : null,
+                ),
+                onChanged: _onSearchChanged,
+                onSubmitted: _onSearchSubmitted,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildIdeasLayout(
-    BuildContext context,
-    List<TravelIdea> ideas,
-    AppLocalizations t,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
+  Widget _buildResultsHeader(AppLocalizations t) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) {
+            return Text(
+              '${t.resultsFor}: "$_currentQuery" (${_controller.totalResults} results)',
+              style: Theme.of(context).textTheme.titleMedium,
+            );
+          },
+        ),
+        Gaps.h16,
+      ],
+    );
+  }
 
-        Widget buildIdeaCard(int index) {
-          final item = ideas[index];
-          final saved = _store.isSaved(item.id);
-          return Semantics(
-            label: t.ideaLabel(item.title),
-            button: true,
-            child: Card(
-              child: ListTile(
-                leading: const Icon(Icons.explore_outlined),
-                title: Text(item.title),
-                subtitle: Text(item.subtitle),
-                onTap: () => context.pushNamed(
-                  'plan',
-                  extra: PlanTripArgs(
-                    ideaId: item.id,
-                    title: item.title,
-                    tags: item.tags,
-                  ),
-                ),
-                trailing: Wrap(
-                  spacing: 8,
-                  children: [
-                    Semantics(
-                      button: true,
-                      label: t.open,
-                      hint: 'Open idea and prefill Plan Trip',
-                      child: FilledButton.tonal(
-                        onPressed: () => context.pushNamed(
-                          'plan',
-                          extra: PlanTripArgs(
-                            ideaId: item.id,
-                            title: item.title,
-                            tags: item.tags,
-                          ),
-                        ),
-                        child: Text(t.open),
-                      ),
-                    ),
-                    Semantics(
-                      label: saved ? t.unsaveIdea : t.saveIdea,
-                      hint: saved ? 'Remove idea from saved' : 'Save idea',
-                      button: true,
-                      child: IconButton(
-                        tooltip: saved ? t.unsave : t.save,
-                        icon: Icon(
-                          saved
-                              ? Icons.bookmark_added_rounded
-                              : Icons.bookmark_add_rounded,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _store.toggleSaved(item.id);
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                saved
-                                    ? t.removedFromYourIdeas
-                                    : t.savedToYourIdeas,
-                              ),
-                              duration: const Duration(milliseconds: 1200),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+  Widget _buildPerformanceMetrics() {
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final metrics = _controller.getPerformanceMetrics();
+        return Card(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: Padding(
+            padding: Insets.allSm,
+            child: Text(
+              'Debug: Cache: ${metrics['cacheSize']}, Page: ${metrics['currentPage']}, '
+              'Total: ${metrics['totalResults']}, Loading: ${metrics['isLoading']}',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
-          );
-        }
-
-        if (width <= Breakpoints.tablet) {
-          return ListView.separated(
-            itemCount: ideas.length,
-            separatorBuilder: (_, __) => Gaps.h8,
-            itemBuilder: (context, index) => buildIdeaCard(index),
-          );
-        }
-
-        int columns;
-        if (width >= 1400) {
-          columns = 4;
-        } else if (width >= 1200) {
-          columns = 3;
-        } else {
-          columns = 2;
-        }
-
-        return GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 16 / 5,
           ),
-          itemCount: ideas.length,
-          itemBuilder: (context, index) => buildIdeaCard(index),
         );
       },
     );
+  }
+
+  void _onSearchChanged(String value) {
+    // The controller handles debouncing internally
+    _controller.search(
+      query: value.isEmpty ? null : value,
+      useRemote: _shouldUseRemote(),
+    );
+  }
+
+  void _onSearchSubmitted(String value) {
+    setState(() {
+      _currentQuery = value.isEmpty ? null : value;
+    });
+
+    // Update URL to reflect search
+    _updateUrlWithQuery(value);
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _currentQuery = null;
+    });
+
+    _controller.search(query: null, useRemote: _shouldUseRemote());
+
+    _updateUrlWithQuery('');
+  }
+
+  void _onFiltersChanged() {
+    // Filters automatically trigger search through the controller
+    // No additional action needed
+  }
+
+  void _updateUrlWithQuery(String query) {
+    final uri = GoRouterState.of(context).uri;
+    final newParams = Map<String, String>.from(uri.queryParameters);
+
+    if (query.isEmpty) {
+      newParams.remove('q');
+    } else {
+      newParams['q'] = query;
+    }
+
+    final newUri = uri.replace(queryParameters: newParams);
+    context.go(newUri.toString());
   }
 }

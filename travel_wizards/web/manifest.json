@@ -1,17 +1,107 @@
 {
-    "name": "Travel Wizards",
-    "short_name": "TravelWizards",
-    "start_url": ".",
+    "name": "Travel Wizards - AI-Powered Trip Planning",
+    "short_name": "Travel Wizards",
+    "description": "Plan your perfect trip with our intelligent AI travel assistant. Get personalized recommendations, seamless booking, and collaborative planning.",
+    "start_url": "/",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#FAFAFA",
-    "theme_color": "#1A73E8",
-    "description": "Plan, brainstorm, and manage your trips with AI-powered Travel Wizards.",
     "orientation": "portrait-primary",
+    "background_color": "#FAFAFA",
+    "theme_color": "#2196F3",
+    "categories": ["travel", "productivity", "lifestyle"],
+    "lang": "en",
+    "dir": "ltr",
     "prefer_related_applications": false,
+    "protocol_handlers": [
+        {
+            "protocol": "web+travelwizards",
+            "url": "/share?url=%s"
+        }
+    ],
+    "share_target": {
+        "action": "/share",
+        "method": "GET",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url"
+        }
+    },
+    "shortcuts": [
+        {
+            "name": "Plan New Trip",
+            "short_name": "New Trip",
+            "description": "Start planning a new trip",
+            "url": "/plan",
+            "icons": [
+                {
+                    "src": "icons/shortcut-plan.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Explore Ideas",
+            "short_name": "Explore",
+            "description": "Browse travel ideas and inspiration",
+            "url": "/explore",
+            "icons": [
+                {
+                    "src": "icons/shortcut-explore.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "AI Assistant",
+            "short_name": "AI Chat",
+            "description": "Chat with the travel AI assistant",
+            "url": "/chat",
+            "icons": [
+                {
+                    "src": "icons/shortcut-chat.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ],
     "icons": [
+        {
+            "src": "icons/Icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-152.png",
+            "sizes": "152x152",
+            "type": "image/png"
+        },
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-384.png",
+            "sizes": "384x384",
             "type": "image/png"
         },
         {
@@ -30,6 +120,29 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshots/mobile-home.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Home screen showing trip overview"
+        },
+        {
+            "src": "screenshots/mobile-plan.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Trip planning wizard"
+        },
+        {
+            "src": "screenshots/desktop-dashboard.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Desktop dashboard view"
         }
     ]
 }

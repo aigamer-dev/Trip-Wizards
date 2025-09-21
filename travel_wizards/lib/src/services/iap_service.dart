@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'error_handling_service.dart';
 
 /// Simple wrapper around in_app_purchase for Google Play subscriptions.
 class IAPService {
@@ -49,7 +50,13 @@ class IAPService {
                 p.status == PurchaseStatus.restored) {
               try {
                 await _iap.completePurchase(p);
-              } catch (_) {}
+              } catch (e) {
+                ErrorHandlingService.instance.handleError(
+                  e,
+                  context: 'IAPService: Complete purchase',
+                  showToUser: false,
+                );
+              }
               if (!completer.isCompleted) completer.complete(true);
               await sub.cancel();
             } else if (p.status == PurchaseStatus.error ||

@@ -13,7 +13,13 @@ class TripsRepository {
         .collection('trips');
   }
 
-  String get _uid => FirebaseAuth.instance.currentUser!.uid;
+  String get _uid {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('User must be authenticated to access trips');
+    }
+    return user.uid;
+  }
 
   Future<List<Trip>> listTrips() async {
     final snapshot = await _userTripsCollection(

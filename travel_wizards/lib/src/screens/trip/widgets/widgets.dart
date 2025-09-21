@@ -1,6 +1,8 @@
 // Export all trip detail widgets
+export 'trip_actions_bar.dart';
 export 'trip_booking_status_card.dart';
 export 'trip_breadcrumb.dart';
+export 'trip_dialogs.dart';
 export 'trip_invoice_card.dart';
 export 'trip_invites_list.dart';
 export 'trip_itinerary_card.dart';

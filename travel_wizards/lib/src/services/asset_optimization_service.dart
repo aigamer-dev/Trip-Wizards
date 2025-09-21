@@ -21,16 +21,11 @@ class AssetOptimizationService {
 
   /// Preload critical assets
   Future<void> preloadCriticalAssets() async {
-    final criticalAssets = [
-      'assets/images/logo.png',
-      'assets/images/placeholder.png',
-      'assets/icons/app_icon.png',
-      // Add other critical assets
-    ];
-
-    await Future.wait(criticalAssets.map((asset) => _preloadAsset(asset)));
-
-    debugPrint('Critical assets preloaded: ${criticalAssets.length} assets');
+    // No-op by default to avoid 404s when assets are not declared in pubspec.
+    // Screens/features should request preloads explicitly via batchPreloadAssets.
+    if (kDebugMode) {
+      debugPrint('Skipped global critical assets preload (none configured).');
+    }
   }
 
   /// Preload a single asset

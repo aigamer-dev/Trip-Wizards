@@ -275,7 +275,7 @@ class PerformanceOptimizedApp extends StatefulWidget {
   const PerformanceOptimizedApp({
     super.key,
     required this.child,
-    this.enableMonitoring = kDebugMode,
+    this.enableMonitoring = false,
     this.criticalAssets = const [],
   });
 
@@ -310,14 +310,21 @@ class _PerformanceOptimizedAppState extends State<PerformanceOptimizedApp> {
 
   @override
   Widget build(BuildContext context) {
+    Widget content = widget.child;
+
     if (widget.enableMonitoring) {
-      return pm.PerformanceMonitor(
-        child: widget.child,
-        showOverlay: kDebugMode,
+      content = pm.PerformanceMonitor(child: content, showOverlay: kDebugMode);
+    }
+
+    // Ensure Directionality exists for overlays using AlignmentDirectional
+    if (Directionality.maybeOf(context) == null) {
+      content = Directionality(
+        textDirection: TextDirection.ltr,
+        child: content,
       );
     }
 
-    return widget.child;
+    return content;
   }
 }
 

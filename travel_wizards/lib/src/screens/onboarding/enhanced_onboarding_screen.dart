@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:travel_wizards/src/common/ui/spacing.dart';
-import 'package:travel_wizards/src/services/auth_service.dart';
-import 'package:travel_wizards/src/l10n/app_localizations.dart';
+// import 'package:travel_wizards/src/l10n/app_localizations.dart';
 
 /// Enhanced onboarding screen with travel-focused preferences and skip options
 class EnhancedOnboardingScreen extends StatefulWidget {
@@ -122,7 +121,7 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context)!;
+    // final t = AppLocalizations.of(context)!; // TODO: Use localization strings in UI labels.
     final theme = Theme.of(context);
 
     return Scaffold(
