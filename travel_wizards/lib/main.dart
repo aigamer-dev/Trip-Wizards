@@ -1,34 +1,36 @@
+import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Avoid importing dart:io on web; use foundation platform checks instead.
-import 'src/app/app.dart';
-import 'src/app/theme.dart';
-import 'src/app/settings_controller.dart';
-import 'src/config/env.dart';
-import 'src/services/backend_service.dart';
+import 'src/core/app/app.dart';
+import 'src/core/app/theme.dart';
+import 'src/core/app/settings_controller.dart';
+import 'src/core/config/env.dart';
+import 'src/shared/services/backend_service.dart';
 import 'package:provider/provider.dart';
-import 'src/data/explore_store.dart';
-import 'src/data/plan_trip_store.dart';
-import 'src/di/travel_wizards_service_registry.dart';
+import 'src/features/explore/data/explore_store.dart';
+import 'src/features/trip_planning/data/plan_trip_store.dart';
+import 'src/core/architecture/travel_wizards_service_registry.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'src/services/settings_repository.dart';
+import 'src/shared/services/settings_repository.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'src/services/local_sync_repository.dart';
-import 'src/data/onboarding_state.dart';
-import 'src/services/iap_service.dart';
-import 'src/services/push_notifications_service.dart';
-import 'src/services/error_handling_service.dart';
-import 'src/services/offline_service.dart';
-import 'src/services/performance_optimization_manager.dart';
-import 'src/services/navigation_service.dart';
-import 'src/services/notification_service.dart';
-import 'src/services/emergency_service.dart';
-import 'src/services/android_optimization_service.dart';
-import 'src/services/web_optimization_service.dart';
+import 'src/shared/services/local_sync_repository.dart';
+import 'src/features/onboarding/data/onboarding_state.dart';
+import 'src/shared/services/iap_service.dart';
+import 'src/shared/services/push_notifications_service.dart';
+import 'src/shared/services/error_handling_service.dart';
+import 'src/shared/services/offline_service.dart';
+import 'src/shared/services/performance_optimization_manager.dart';
+import 'src/shared/services/navigation_service.dart';
+import 'src/shared/services/notification_service.dart';
+import 'src/shared/services/emergency_service.dart';
+import 'src/shared/services/android_optimization_service.dart';
+import 'src/shared/services/web_optimization_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,27 +64,27 @@ Future<void> main() async {
   await ErrorHandlingService.instance.handleAsync(
     () => AppSettings.instance.load(),
     context: 'App Settings Loading',
-    showUserError: false,
+    showUserError: true,
   );
 
   // Initialize Hive for lightweight local persistence
   await ErrorHandlingService.instance.handleAsync(
     () => Hive.initFlutter(),
     context: 'Hive Initialization',
-    showUserError: false,
+    showUserError: true,
   );
 
   await ErrorHandlingService.instance.handleAsync(
     () => LocalSyncRepository.instance.init(),
     context: 'Local Sync Repository Initialization',
-    showUserError: false,
+    showUserError: true,
   );
 
   // Initialize offline service for caching and offline functionality
   await ErrorHandlingService.instance.handleAsync(
     () => OfflineService.instance.initialize(),
     context: 'Offline Service Initialization',
-    showUserError: false,
+    showUserError: true,
   );
 
   // Initialize navigation service for enhanced navigation
@@ -92,7 +94,7 @@ Future<void> main() async {
   await ErrorHandlingService.instance.handleAsync(
     () => PerformanceOptimizationManager.instance.initialize(),
     context: 'Performance Optimization Initialization',
-    showUserError: false,
+    showUserError: true,
   );
 
   // Initialize platform-specific optimizations
@@ -100,7 +102,7 @@ Future<void> main() async {
     await ErrorHandlingService.instance.handleAsync(
       () => AndroidOptimizationService.instance.initialize(),
       context: 'Android Optimization Initialization',
-      showUserError: false,
+      showUserError: true,
     );
   }
 
@@ -108,7 +110,7 @@ Future<void> main() async {
     await ErrorHandlingService.instance.handleAsync(
       () => WebOptimizationService.instance.initialize(),
       context: 'Web Optimization Initialization',
-      showUserError: false,
+      showUserError: true,
     );
   }
 
@@ -234,6 +236,41 @@ Future<void> main() async {
         context: 'Settings Push to Firestore',
         showUserError: false,
       );
+
+      unawaited(
+        ErrorHandlingService.instance.handleAsync(
+          () => NotificationService.instance.ensurePermissionsRequested(),
+          context: 'Notification Permission Request',
+          showUserError: false,
+        ),
+      );
+
+      unawaited(
+        ErrorHandlingService.instance.handleAsync(
+          () => PushNotificationsService.instance.requestPermissionsIfNeeded(),
+          context: 'Push Notification Permission Request',
+          showUserError: false,
+        ),
+      );
+
+      unawaited(
+        ErrorHandlingService.instance.handleAsync(
+          () => EmergencyService.instance.ensurePermissionsRequested(),
+          context: 'Emergency Permission Request',
+          showUserError: false,
+        ),
+      );
+
+      if (kIsWeb) {
+        unawaited(
+          ErrorHandlingService.instance.handleAsync(
+            () =>
+                WebOptimizationService.instance.requestNotificationPermission(),
+            context: 'Web Notification Permission Request',
+            showUserError: false,
+          ),
+        );
+      }
     }
   });
 
