@@ -48,3 +48,11 @@ app.*.map.json
 .env
 .env.*
 .env.local
+
+# Firebase configuration files (contain sensitive API keys)
+lib/firebase_options.dart
+android/app/google-services.json
+web/index.html
+web/firebase-messaging-sw.js
+
+# Note: Use .sample files as templates for setting up your Firebase configuration

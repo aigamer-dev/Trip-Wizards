@@ -2,6 +2,36 @@
 
 Material 3 Flutter app for planning trips with an Explore ideas flow, localization, and a backend-enabled data source (optional).
 
+## Quick Start
+
+1. **Clone the repository**
+2. **Set up Firebase configuration** (see [FIREBASE_SETUP.md](FIREBASE_SETUP.md))
+3. **Copy sample configuration files:**
+   ```bash
+   cp .env.sample .env
+   cp lib/firebase_options.dart.sample lib/firebase_options.dart
+   cp web/index.html.sample web/index.html
+   cp web/firebase-messaging-sw.js.sample web/firebase-messaging-sw.js
+   ```
+4. **Configure your Firebase project** and update the configuration files
+5. **Run the app:**
+   ```bash
+   flutter pub get
+   flutter run
+   ```
+
+## Configuration Files
+
+This project uses sample configuration files to protect sensitive data:
+
+- `.env.sample` → `.env` (environment variables)
+- `lib/firebase_options.dart.sample` → `lib/firebase_options.dart` (Firebase config)
+- `web/index.html.sample` → `web/index.html` (web Firebase config)
+- `web/firebase-messaging-sw.js.sample` → `web/firebase-messaging-sw.js` (web messaging)
+- `android/app/google-services.template.json` → `android/app/google-services.json` (Android config)
+
+⚠️ **Never commit the actual configuration files to git** - they contain sensitive API keys.
+
 ## Run locally
 
 Default (local in-memory ideas, no backend needed):

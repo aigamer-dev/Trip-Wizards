@@ -1,0 +1,189 @@
+{
+  "@@locale": "mr",
+  "appTitle": "ट्रॅव्हल विझार्ड्स",
+  "searchPlaceholder": "ट्रॅव्हल विझार्ड्स",
+  "menu": "मेनू",
+  "open": "उघडा",
+  "explore": "एक्सप्लोर",
+  "home": "होम",
+  "settings": "सेटिंग्ज",
+  "generationInProgress": "जनरेशन प्रोग्रेसमध्ये",
+  "ongoingTrips": "सुरू असलेली ट्रिप्स",
+  "plannedTrips": "नियोजित ट्रिप्स",
+  "suggestedTrips": "सूचित ट्रिप्स",
+  "addTrip": "ट्रिप जोडा",
+  "themeMode": "थीम मोड",
+  "language": "भाषा",
+  "systemDefault": "सिस्टम डिफॉल्ट",
+  "light": "लाइट",
+  "dark": "डार्क",
+  "resultsFor": "यांचे परिणाम",
+  "languageSelectionIntro": "Choose your preferred app language. Native Indian languages are localised while others use Google Translate instantly.",
+  "languageSearchHint": "Search languages",
+  "languageEmptyState": "No languages match your search yet.",
+  "languageSetupMessage": "Setting up {languageName}...",
+  "languageChangedNative": "Language changed to {languageName}",
+  "languageChangedTranslated": "Language changed to {languageName} (Google Translate)",
+  "done": "Done",
+  "languageManageTitle": "Manage your app language globally",
+  "languageManageDescription": "Choose your preferred language from Settings → Language and we'll apply it everywhere.",
+  "languageManageCta": "Open language settings",
+  "filters": "फिल्टर्स",
+  "clearFilters": "फिल्टर्स साफ करा",
+  "tagWeekend": "वीकेंड",
+  "tagAdventure": "अ‍ॅडव्हेंचर",
+  "tagBudget": "बजेट",
+  "budgetLow": "कमी बजेट",
+  "budgetMedium": "मध्यम बजेट",
+  "budgetHigh": "जास्त बजेट",
+  "duration2to3": "२–३ दिवस",
+  "duration4to5": "४–५ दिवस",
+  "duration6plus": "६+ दिवस",
+  "save": "सेव्ह करा",
+  "unsave": "सेव्ह काढा",
+  "saveIdea": "आयडिया सेव्ह करा",
+  "unsaveIdea": "आयडिया सेव्ह काढा",
+  "savedToYourIdeas": "तुमच्या आयडियात सेव्ह केले",
+  "removedFromYourIdeas": "तुमच्या आयडियातून काढले",
+  "idea": "आयडिया",
+  "ideaLabel": "आयडिया: {title}",
+  "@ideaLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Weekend in Hampi"
+      }
+    }
+  },
+  "ideasFallbackToLocal": "नेटवर्क समस्या: स्थानिक आयडिया दाखवत आहोत",
+  "retry": "पुन्हा प्रयत्न करा",
+  "skip": "वगळा",
+  "stepProgress": "एकूण {total} पैकी टप्पा {current}",
+  "@stepProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "welcomeToTravelWizards": "ट्रॅव्हल विजार्ड्समध्ये आपले स्वागत आहे!",
+  "personalizeExperience": "चला, तुमच्या आवडीनुसार तुमचा प्रवास अनुभव वैयक्तिक बनवूया.",
+  "aiPoweredTripPlanning": "एआय-संचालित प्रवास नियोजन",
+  "personalizedRecommendations": "वैयक्तिक शिफारसी",
+  "collaborativeTripPlanning": "सहकार्याने प्रवास नियोजन",
+  "errorCompletingOnboarding": "ऑनबोर्डिंग पूर्ण करताना त्रुटी: {error}",
+  "@errorCompletingOnboarding": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "profileOfflineTitle": "Offline mode",
+  "profileOfflineDescription": "We'll sync your changes as soon as you reconnect. You can keep editing safely.",
+  "profileDiscardEditsLabel": "Discard edits",
+  "profileAccountBasicsTitle": "Account basics",
+  "profileAccountBasicsSubtitle": "These details power personalised suggestions and shared trip experiences.",
+  "profileFullNameLabel": "Full name",
+  "profileUsernameLabel": "Username",
+  "profileUsernameHelper": "Used for public sharing links and concierge assistance",
+  "profileEmailLabel": "Email",
+  "profileGenderLabel": "Gender",
+  "profileGenderOptionPreferNot": "Prefer not to say",
+  "profileGenderOptionMale": "Male",
+  "profileGenderOptionFemale": "Female",
+  "profileGenderOptionOther": "Other",
+  "profileDobLabel": "Date of birth",
+  "profileDobHint": "YYYY-MM-DD",
+  "profileDobFormatError": "Use the format YYYY-MM-DD",
+  "profileGoogleManagedNotice": "These details come from your Google account. Email support@travelwizards.com if they need updating.",
+  "profileHomeTitle": "Where you call home",
+  "profileHomeSubtitle": "Let us tailor weather alerts and concierge tips around your go-to destinations.",
+  "profileCountryLabel": "Country",
+  "profileStateLabel": "State / Region",
+  "profileCityLabel": "City",
+  "profileTasteTitle": "Taste & care",
+  "profileTasteSubtitle": "We use this to highlight dining you'll love and avoid things you can't have.",
+  "profileFoodPrefsLabel": "Food preferences",
+  "profileFoodPrefsHelper": "Comma-separated (e.g. Vegan, Nut-free, Farm-to-table)",
+  "profileAllergiesLabel": "Allergies / notes",
+  "profilePhotoSectionTitle": "Profile photo",
+  "profilePhotoGuidance": "Use a high-quality square image for best results.",
+  "profileUploadPhotoButton": "Upload new photo",
+  "profileUseGooglePhotoButton": "Use Google photo",
+  "profileRemovePhotoButton": "Remove photo",
+  "profileOfflinePhotoWarning": "You're offline. Reconnect to upload a new photo.",
+  "profilePhotoManagedNotice": "Profile photos for Google sign-ins must be updated from your Google Account. We'll mirror updates automatically.",
+  "profileDiscardChangesLabel": "Discard changes",
+  "profileLastSavedAtLabel": "Last saved at {time}",
+  "@profileLastSavedAtLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2:45 PM"
+      }
+    }
+  },
+  "profileCacheMessage": "Your profile is cached for offline access and synchronises as soon as you reconnect.",
+  "profileSaveTooltipPending": "Save profile updates",
+  "profileSaveTooltipSaved": "All changes saved",
+  "profilePageTitle": "Profile",
+  "profileBackdropDefaultName": "Your profile",
+  "profileManagedByGoogleBadge": "Managed by Google",
+  "profileOfflineBadge": "Offline",
+  "profileSignedInToUploadError": "You need to be signed in to upload.",
+  "profileReconnectToUploadError": "Reconnect to upload a new photo.",
+  "profileReadFileError": "Could not read the selected file.",
+  "profileFileTooLargeError": "Please choose an image under 5 MB.",
+  "profilePhotoUpdatedMessage": "Photo updated. Changes will auto-save.",
+  "profilePhotoUploadFailedMessage": "Photo upload failed: {error}",
+  "@profilePhotoUploadFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "profileSignedInToSaveError": "You need to be signed in to save.",
+  "profileFixHighlightedFieldsError": "Please fix the highlighted fields.",
+  "profileSyncSuccessMessage": "Profile synced across your devices.",
+  "profileSyncOfflineMessage": "Offline for now. We'll sync your profile when you reconnect.",
+  "profileAutoSaveFailedMessage": "Auto-save failed: {error}",
+  "@profileAutoSaveFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Timeout"
+      }
+    }
+  },
+  "profileSaveFailedMessage": "Failed to save profile: {error}",
+  "@profileSaveFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "profileRevertedChangesMessage": "Reverted unsaved changes.",
+  "profileFieldRequired": "{fieldName} is required",
+  "@profileFieldRequired": {
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Full name"
+      }
+    }
+  },
+  "profileUsernameTooShort": "At least 3 characters",
+  "profileUsernameInvalid": "Only letters, numbers, underscores or dots",
+  "profileEmailInvalid": "Enter a valid email address"
+}
