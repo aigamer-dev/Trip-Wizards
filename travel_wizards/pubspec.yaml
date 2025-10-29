@@ -105,8 +105,9 @@ flutter:
   generate: true
 
   assets:
-    - .env
-    - assets/payments/
+     - .env
+     - assets/payments/
+     - assets/icons/
 
 l10n:
   arb-dir: lib/src/l10n
@@ -151,15 +152,15 @@ l10n:
 flutter_icons:
   android: true
   ios: false
-  image_path: "web/icons/Icon-512.png"
+  image_path: "assets/icons/Icon-512.png"
   adaptive_icon_background: "#FAFAFA"
-  adaptive_icon_foreground: "web/icons/Icon-192.png"
+  adaptive_icon_foreground: "assets/icons/adaptive-icon.png"
 
 flutter_native_splash:
   color: "#FAFAFA"
   color_dark: "#121212"
-  image: "web/icons/Icon-192.png"
-  image_dark: "web/icons/Icon-192.png"
+  image: "assets/icons/Icon-192.png"
+  image_dark: "assets/icons/Icon-192.png"
   android: true
   ios: false
   web: true
