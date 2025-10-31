@@ -1179,7 +1179,9 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('Sync your contacts in Settings to use this feature'),
+                      content: const Text(
+                        'Sync your contacts in Settings to use this feature',
+                      ),
                       action: SnackBarAction(
                         label: 'Settings',
                         onPressed: () => context.goNamed('settings_shell'),
