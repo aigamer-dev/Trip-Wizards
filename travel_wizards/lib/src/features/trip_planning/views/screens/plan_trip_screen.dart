@@ -782,10 +782,26 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
     );
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
+    // Validate all required fields before generating
+    if (controller.destinations.isEmpty) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Please add at least one destination')),
+      );
+      return;
+    }
+
+    if (controller.dates == null) {
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Please select travel dates')),
+      );
+      return;
+    }
+
     // Show loading
     scaffoldMessenger.showSnackBar(
       const SnackBar(
         content: Text('Generating your personalized trip itinerary...'),
+        duration: Duration(seconds: 2),
       ),
     );
 

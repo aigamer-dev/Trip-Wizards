@@ -160,12 +160,14 @@ class TripActionsBar extends StatelessWidget {
                           ],
                         ),
                       );
-                      
+
                       if (confirm == true) {
                         await _doc().update({'status': 'draft'});
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Trip reverted to draft')),
+                            const SnackBar(
+                              content: Text('Trip reverted to draft'),
+                            ),
                           );
                         }
                       }

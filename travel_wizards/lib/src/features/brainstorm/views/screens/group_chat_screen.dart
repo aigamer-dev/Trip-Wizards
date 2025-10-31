@@ -155,7 +155,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
                 return ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];

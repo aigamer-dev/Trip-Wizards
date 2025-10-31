@@ -330,46 +330,56 @@ class _TripCollaborationScreenState extends State<TripCollaborationScreen>
                 try {
                   final querySnapshot = await FirebaseFirestore.instance
                       .collection('users')
-                      .where('email', isGreaterThanOrEqualTo: textEditingValue.text.toLowerCase())
-                      .where('email', isLessThan: '${textEditingValue.text.toLowerCase()}z')
+                      .where(
+                        'email',
+                        isGreaterThanOrEqualTo: textEditingValue.text
+                            .toLowerCase(),
+                      )
+                      .where(
+                        'email',
+                        isLessThan: '${textEditingValue.text.toLowerCase()}z',
+                      )
                       .limit(10)
                       .get();
-                  
+
                   return querySnapshot.docs
-                      .map((doc) => {
-                            'email': doc.data()['email'] as String? ?? '',
-                            'name': doc.data()['displayName'] as String? ?? '',
-                          })
+                      .map(
+                        (doc) => {
+                          'email': doc.data()['email'] as String? ?? '',
+                          'name': doc.data()['displayName'] as String? ?? '',
+                        },
+                      )
                       .where((user) => user['email']!.isNotEmpty)
                       .toList();
                 } catch (e) {
                   return const Iterable<Map<String, String>>.empty();
                 }
               },
-              displayStringForOption: (Map<String, String> option) => 
-                  option['name']!.isNotEmpty 
-                      ? '${option['name']} (${option['email']})' 
-                      : option['email']!,
+              displayStringForOption: (Map<String, String> option) =>
+                  option['name']!.isNotEmpty
+                  ? '${option['name']} (${option['email']})'
+                  : option['email']!,
               onSelected: (Map<String, String> selection) {
                 _inviteEmailController.text = selection['email']!;
               },
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                return TextFormField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  decoration: const InputDecoration(
-                    labelText: 'Email Address',
-                    hintText: 'Start typing to search users...',
-                    helperText: 'Type at least 2 characters to search',
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  onChanged: (value) {
-                    _inviteEmailController.text = value;
+              fieldViewBuilder:
+                  (context, controller, focusNode, onFieldSubmitted) {
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(
+                        labelText: 'Email Address',
+                        hintText: 'Start typing to search users...',
+                        helperText: 'Type at least 2 characters to search',
+                        prefixIcon: Icon(Icons.email),
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      onChanged: (value) {
+                        _inviteEmailController.text = value;
+                      },
+                    );
                   },
-                );
-              },
               optionsViewBuilder: (context, onSelected, options) {
                 return Align(
                   alignment: Alignment.topLeft,
@@ -385,8 +395,14 @@ class _TripCollaborationScreenState extends State<TripCollaborationScreen>
                           final option = options.elementAt(index);
                           return ListTile(
                             leading: const Icon(Icons.person),
-                            title: Text(option['name']!.isNotEmpty ? option['name']! : option['email']!),
-                            subtitle: option['name']!.isNotEmpty ? Text(option['email']!) : null,
+                            title: Text(
+                              option['name']!.isNotEmpty
+                                  ? option['name']!
+                                  : option['email']!,
+                            ),
+                            subtitle: option['name']!.isNotEmpty
+                                ? Text(option['email']!)
+                                : null,
                             onTap: () {
                               onSelected(option);
                             },
