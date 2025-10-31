@@ -59,8 +59,11 @@ class GroupChatService {
         .collection('chat')
         .orderBy('timestamp', descending: false)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => ChatMessage.fromFirestore(doc)).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ChatMessage.fromFirestore(doc))
+              .toList(),
+        );
   }
 
   Future<void> sendMessage({
@@ -72,7 +75,8 @@ class GroupChatService {
     if (user == null) return;
 
     final mentions = _extractMentions(message);
-    final shouldTriggerAi = mentions.contains('@ai') || mentions.contains('@wizard');
+    final shouldTriggerAi =
+        mentions.contains('@ai') || mentions.contains('@wizard');
 
     final chatMessage = ChatMessage(
       id: '',
@@ -98,12 +102,8 @@ class GroupChatService {
   Future<void> _generateAiResponse(String tripId, String userMessage) async {
     try {
       final response = await _callAiService(userMessage);
-      
-      await _firestore
-          .collection('trips')
-          .doc(tripId)
-          .collection('chat')
-          .add({
+
+      await _firestore.collection('trips').doc(tripId).collection('chat').add({
         'senderId': 'ai',
         'senderName': 'Travel Wizard AI',
         'message': response,

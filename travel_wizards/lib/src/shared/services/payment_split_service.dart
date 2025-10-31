@@ -33,7 +33,9 @@ class Expense {
       paidBy: data['paidBy'] ?? '',
       splitAmong: List<String>.from(data['splitAmong'] ?? []),
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      individualShares: Map<String, double>.from(data['individualShares'] ?? {}),
+      individualShares: Map<String, double>.from(
+        data['individualShares'] ?? {},
+      ),
     );
   }
 
@@ -96,20 +98,26 @@ class PaymentSplitService {
         .collection('expenses')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Expense.fromFirestore(doc)).toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Expense.fromFirestore(doc)).toList(),
+        );
   }
 
-  Map<String, double> calculateBalances(List<Expense> expenses, List<String> members) {
+  Map<String, double> calculateBalances(
+    List<Expense> expenses,
+    List<String> members,
+  ) {
     final balances = <String, double>{};
-    
+
     for (final member in members) {
       balances[member] = 0.0;
     }
 
     for (final expense in expenses) {
-      balances[expense.paidBy] = (balances[expense.paidBy] ?? 0) + expense.amount;
-      
+      balances[expense.paidBy] =
+          (balances[expense.paidBy] ?? 0) + expense.amount;
+
       for (final entry in expense.individualShares.entries) {
         balances[entry.key] = (balances[entry.key] ?? 0) - entry.value;
       }
@@ -138,14 +146,14 @@ class PaymentSplitService {
     while (i < debtorList.length && j < creditorList.length) {
       final debtor = debtorList[i];
       final creditor = creditorList[j];
-      
-      final amount = debtor.value < creditor.value ? debtor.value : creditor.value;
-      
-      settlements.add(PaymentSettlement(
-        from: debtor.key,
-        to: creditor.key,
-        amount: amount,
-      ));
+
+      final amount = debtor.value < creditor.value
+          ? debtor.value
+          : creditor.value;
+
+      settlements.add(
+        PaymentSettlement(from: debtor.key, to: creditor.key, amount: amount),
+      );
 
       debtorList[i] = MapEntry(debtor.key, debtor.value - amount);
       creditorList[j] = MapEntry(creditor.key, creditor.value - amount);

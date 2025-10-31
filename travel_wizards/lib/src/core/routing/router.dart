@@ -10,6 +10,7 @@ import 'package:travel_wizards/src/features/authentication/views/screens/login_l
 import 'package:travel_wizards/src/features/bookings/views/screens/booking_details_screen.dart';
 import 'package:travel_wizards/src/features/bookings/views/screens/enhanced_bookings_screen.dart';
 import 'package:travel_wizards/src/features/brainstorm/views/screens/brainstorm_screen.dart';
+import 'package:travel_wizards/src/features/brainstorm/views/screens/group_chat_screen.dart';
 import 'package:travel_wizards/src/features/concierge/views/screens/enhanced_concierge_chat_screen.dart';
 import 'package:travel_wizards/src/features/emergency/views/screens/emergency_screen.dart';
 import 'package:travel_wizards/src/features/explore/views/screens/enhanced_explore_screen.dart';
@@ -19,6 +20,7 @@ import 'package:travel_wizards/src/features/notifications/views/screens/notifica
 import 'package:travel_wizards/src/features/onboarding/data/onboarding_state.dart';
 import 'package:travel_wizards/src/features/onboarding/views/screens/enhanced_onboarding_screen.dart';
 import 'package:travel_wizards/src/features/payments/views/screens/budget_screen.dart';
+import 'package:travel_wizards/src/features/payments/views/screens/expenses_screen.dart';
 import 'package:travel_wizards/src/features/payments/views/screens/payment_history_screen.dart';
 import 'package:travel_wizards/src/features/settings/views/screens/payments/payment_options_screen.dart';
 import 'package:travel_wizards/src/features/settings/views/screens/profile/profile_screen.dart';
@@ -170,6 +172,25 @@ GoRouter _buildRouter() {
         path: '/emergency',
         name: 'emergency',
         pageBuilder: (context, state) => fadePage(const EmergencyScreen()),
+      ),
+      GoRoute(
+        path: '/group-chat/:tripId',
+        name: 'group_chat',
+        pageBuilder: (context, state) {
+          final tripId = state.pathParameters['tripId'] ?? '';
+          final tripName = state.uri.queryParameters['tripName'] ?? 'Trip';
+          return fadePage(GroupChatScreen(tripId: tripId, tripName: tripName));
+        },
+      ),
+      GoRoute(
+        path: '/expenses/:tripId',
+        name: 'expenses',
+        pageBuilder: (context, state) {
+          final tripId = state.pathParameters['tripId'] ?? '';
+          final buddiesParam = state.uri.queryParameters['buddies'] ?? '';
+          final buddies = buddiesParam.isEmpty ? <String>[] : buddiesParam.split(',');
+          return fadePage(ExpensesScreen(tripId: tripId, tripBuddies: buddies));
+        },
       ),
       // Social Features
       GoRoute(
