@@ -6,26 +6,31 @@ This checklist covers all minute steps for building the Travel Wizards cross-pla
 
 ## PRIORITY FEATURES (Added Oct 31, 2024 - 5:38 PM)
 
-### Group Chat in Brainstorm Screen
+### Group Chat in Brainstorm Screen ✅ CORE COMPLETE
 
 - [x] Create GroupChatService with Firestore integration
 - [x] Implement AI mention detection (@ai, @wizard triggers)
 - [x] Add solo user auto-AI-response logic
-- [ ] Integrate chat UI into BrainstormScreen with StreamBuilder
+- [x] Create GroupChatScreen with StreamBuilder for real-time messages
+- [x] Add Material 3 UI with message bubbles and sender names
+- [x] Integrate Chat button into TripActionsBar (Trip Details)
+- [x] Add routing with trip context (/group-chat/:tripId)
+- [x] Display trip buddies chips at top of chat screen
 - [ ] Add end-to-end encryption layer (use encrypt package + RSA key exchange)
 - [ ] Implement message encryption/decryption before Firestore storage
-- [ ] Add trip buddy selector to show active chat participants
-- [ ] Test group chat with multiple users
 - [ ] Add typing indicators and read receipts
+- [ ] Test group chat with multiple users on web app
 
-### Auto Payment Split
+### Auto Payment Split ✅ CORE COMPLETE
 
 - [x] Create PaymentSplitService with expense tracking
 - [x] Implement automatic split calculation algorithm
 - [x] Add settlement suggestions (minimized transactions)
-- [ ] Create ExpensesScreen UI for trip expenses
-- [ ] Add "Add Expense" dialog with split options
-- [ ] Integrate payment split into Trip Details screen
+- [x] Create ExpensesScreen UI with balance cards and settlements
+- [x] Add "Add Expense" FloatingActionButton with split dialog
+- [x] Integrate Expenses button into TripActionsBar (Trip Details)
+- [x] Add routing with buddies context (/expenses/:tripId)
+- [x] Display all expenses list with payer and split info
 - [ ] Add payment notifications to trip buddies
 - [ ] Test payment split with multiple group members
 - [ ] Add export functionality for expense reports
