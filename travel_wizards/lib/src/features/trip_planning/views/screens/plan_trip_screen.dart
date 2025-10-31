@@ -1057,7 +1057,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
                     softWrap: false,
                   ),
                   onDeleted: () {
-                    // TODO: Implement remove destination
+                    controller.removeDestination(destination);
                   },
                   deleteIcon: const Icon(Icons.close, size: 16),
                 );
@@ -1177,10 +1177,13 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
               HGap(12),
               FilledButton.icon(
                 onPressed: () {
-                  // TODO: Implement add buddy from contacts
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Add from contacts coming soon!'),
+                    SnackBar(
+                      content: const Text('Sync your contacts in Settings to use this feature'),
+                      action: SnackBarAction(
+                        label: 'Settings',
+                        onPressed: () => context.goNamed('settings_shell'),
+                      ),
                     ),
                   );
                 },
@@ -1213,7 +1216,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
                     softWrap: false,
                   ),
                   onDeleted: () {
-                    // TODO: Implement remove buddy
+                    controller.removeBuddy(buddy);
                   },
                   deleteIcon: const Icon(Icons.close, size: 16),
                 );

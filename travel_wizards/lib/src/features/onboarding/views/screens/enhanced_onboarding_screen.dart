@@ -18,6 +18,7 @@ class EnhancedOnboardingScreen extends StatefulWidget {
   });
 
   final bool skipProfileLoad;
+
   /// Optional initial step for the onboarding flow. Useful for widget tests.
   final int initialStep;
 
@@ -58,7 +59,7 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
   @override
   void initState() {
     super.initState();
-  _pageController = PageController(initialPage: widget.initialStep);
+    _pageController = PageController(initialPage: widget.initialStep);
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),

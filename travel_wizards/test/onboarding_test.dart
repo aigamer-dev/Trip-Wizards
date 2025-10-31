@@ -47,8 +47,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-  // Verify welcome screen elements (stable checks)
-  expect(find.text('Next'), findsOneWidget);
+      // Verify welcome screen elements (stable checks)
+      expect(find.text('Next'), findsOneWidget);
     });
 
     testWidgets('Should navigate to next step when Next is tapped', (
@@ -77,8 +77,8 @@ void main() {
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 
-  // Verify we're on step 2 (Travel Style)
-  expect(find.text('Step 2 of 6'), findsOneWidget);
+      // Verify we're on step 2 (Travel Style)
+      expect(find.text('Step 2 of 6'), findsOneWidget);
     });
 
     testWidgets('Should allow selecting travel style', (
@@ -140,15 +140,15 @@ void main() {
         ),
       );
 
-  // Verify initial step indicator
-  expect(find.text('Step 1 of 6'), findsOneWidget);
+      // Verify initial step indicator
+      expect(find.text('Step 1 of 6'), findsOneWidget);
 
       // Navigate to next step
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 
-  // Verify step 2
-  expect(find.text('Step 2 of 6'), findsOneWidget);
+      // Verify step 2
+      expect(find.text('Step 2 of 6'), findsOneWidget);
     });
 
     testWidgets('Back button should navigate to previous step', (
@@ -177,15 +177,15 @@ void main() {
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 
-  // Verify we're on step 2
-  expect(find.text('Step 2 of 6'), findsOneWidget);
+      // Verify we're on step 2
+      expect(find.text('Step 2 of 6'), findsOneWidget);
 
       // Tap Back button
       await tester.tap(find.text('Back'));
       await tester.pumpAndSettle();
 
-  // Verify we're back on step 1
-  expect(find.text('Step 1 of 6'), findsOneWidget);
+      // Verify we're back on step 1
+      expect(find.text('Step 1 of 6'), findsOneWidget);
     });
 
     testWidgets('Final step should show "Get Started!" button', (
@@ -204,7 +204,10 @@ void main() {
       final mockFirestore = TestHelpers.createMockFirestoreWithData();
       await tester.pumpWidget(
         TestHelpers.wrapWithApp(
-          child: const EnhancedOnboardingScreen(skipProfileLoad: true, initialStep: 5),
+          child: const EnhancedOnboardingScreen(
+            skipProfileLoad: true,
+            initialStep: 5,
+          ),
           mockAuth: mockAuth,
           mockFirestore: mockFirestore,
         ),
@@ -256,7 +259,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        TestHelpers.wrapWithApp(child: const EnhancedOnboardingScreen(skipProfileLoad: true)),
+        TestHelpers.wrapWithApp(
+          child: const EnhancedOnboardingScreen(skipProfileLoad: true),
+        ),
       );
 
       // Verify layout adapts to tablet
@@ -276,7 +281,9 @@ void main() {
       });
 
       await tester.pumpWidget(
-        TestHelpers.wrapWithApp(child: const EnhancedOnboardingScreen(skipProfileLoad: true)),
+        TestHelpers.wrapWithApp(
+          child: const EnhancedOnboardingScreen(skipProfileLoad: true),
+        ),
       );
 
       // Verify layout adapts to desktop

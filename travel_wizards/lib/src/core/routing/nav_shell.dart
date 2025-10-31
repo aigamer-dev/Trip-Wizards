@@ -256,7 +256,7 @@ class _NavShellState extends State<NavShell> with NavigationAware {
                                 EdgeInsets.symmetric(horizontal: 16),
                               ),
                               onTap: () {
-                                // TODO: Implement search
+                                _searchController.openView();
                               },
                             ),
                           ),

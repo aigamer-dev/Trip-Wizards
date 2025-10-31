@@ -34,11 +34,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-  // First step should be welcome
-  expect(find.text('Welcome to Travel Wizards!'), findsOneWidget);
+      // First step should be welcome
+      expect(find.text('Welcome to Travel Wizards!'), findsOneWidget);
 
       // Navigate to next step (profile)
-  final nextButton = find.text('Next');
+      final nextButton = find.text('Next');
       await tester.tap(nextButton);
       await tester.pumpAndSettle();
 
@@ -64,14 +64,14 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to profile step
-  final nextButton = find.text('Next');
+      final nextButton = find.text('Next');
       await tester.tap(nextButton);
       await tester.pumpAndSettle();
 
-  // Enter name: TravelTextField builds a TextField, so find the label and then the TextField ancestor
-  // Use the first TextField on the profile step for name input (TravelTextField builds a TextField)
-  final nameField = find.byType(TextField).first;
-  await tester.enterText(nameField, 'John Doe');
+      // Enter name: TravelTextField builds a TextField, so find the label and then the TextField ancestor
+      // Use the first TextField on the profile step for name input (TravelTextField builds a TextField)
+      final nameField = find.byType(TextField).first;
+      await tester.enterText(nameField, 'John Doe');
       expect(find.text('John Doe'), findsOneWidget);
 
       // Select gender
@@ -79,29 +79,32 @@ void main() {
         DropdownButtonFormField<String>,
         'Gender',
       );
-    // Instead of opening overlay, call the DropdownButtonFormField's onChanged directly
-    final DropdownButtonFormField<String> genderWidget =
-      tester.widget(genderDropdown);
-    genderWidget.onChanged?.call('Male');
-    await tester.pumpAndSettle();
+      // Instead of opening overlay, call the DropdownButtonFormField's onChanged directly
+      final DropdownButtonFormField<String> genderWidget = tester.widget(
+        genderDropdown,
+      );
+      genderWidget.onChanged?.call('Male');
+      await tester.pumpAndSettle();
 
       // Select state
       final stateDropdown = find.widgetWithText(
         DropdownButtonFormField<String>,
         'State',
       );
-  // Select state by invoking onChanged to avoid overlay hit-test issues
-  final DropdownButtonFormField<String> stateWidget = tester.widget(stateDropdown);
-  stateWidget.onChanged?.call('Karnataka');
-  await tester.pumpAndSettle();
+      // Select state by invoking onChanged to avoid overlay hit-test issues
+      final DropdownButtonFormField<String> stateWidget = tester.widget(
+        stateDropdown,
+      );
+      stateWidget.onChanged?.call('Karnataka');
+      await tester.pumpAndSettle();
 
       // Enter city
-  // City is also a TravelTextField -> TextField
-  final cityField = find.byType(TextField).last;
-  await tester.enterText(cityField, 'Bangalore');
+      // City is also a TravelTextField -> TextField
+      final cityField = find.byType(TextField).last;
+      await tester.enterText(cityField, 'Bangalore');
 
-  // Can proceed to next step
-  expect(find.text('Next'), findsOneWidget);
+      // Can proceed to next step
+      expect(find.text('Next'), findsOneWidget);
     });
 
     testWidgets('date picker opens when tapping date of birth', (
@@ -119,7 +122,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to profile step
-  final nextButton = find.text('Next');
+      final nextButton = find.text('Next');
       await tester.tap(nextButton);
       await tester.pumpAndSettle();
 
@@ -147,7 +150,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to profile step
-  final nextButton = find.text('Next');
+      final nextButton = find.text('Next');
       await tester.tap(nextButton);
       await tester.pumpAndSettle();
 
@@ -156,10 +159,18 @@ void main() {
         DropdownButtonFormField<String>,
         'State',
       );
-  // Inspect the DropdownButtonFormField items directly to ensure states exist
+      // Inspect the DropdownButtonFormField items directly to ensure states exist
       // Verify available options by setting the field value via onChanged
-      final DropdownButtonFormField<String> stateWidget2 = tester.widget(stateDropdown);
-      for (final s in ['Karnataka', 'Maharashtra', 'Tamil Nadu', 'West Bengal', 'Uttar Pradesh']) {
+      final DropdownButtonFormField<String> stateWidget2 = tester.widget(
+        stateDropdown,
+      );
+      for (final s in [
+        'Karnataka',
+        'Maharashtra',
+        'Tamil Nadu',
+        'West Bengal',
+        'Uttar Pradesh',
+      ]) {
         stateWidget2.onChanged?.call(s);
         await tester.pumpAndSettle();
         expect(find.text(s), findsOneWidget);
@@ -184,7 +195,7 @@ void main() {
       expect(find.textContaining('Step 1 of 6'), findsOneWidget);
 
       // Navigate to profile step
-  final nextButton = find.text('Next');
+      final nextButton = find.text('Next');
       await tester.tap(nextButton);
       await tester.pumpAndSettle();
 
@@ -207,19 +218,19 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to profile step
-  final nextButton = find.text('Next');
+      final nextButton = find.text('Next');
       await tester.tap(nextButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Your Profile'), findsOneWidget);
 
       // Navigate back
-  final backButton = find.text('Back');
+      final backButton = find.text('Back');
       await tester.tap(backButton);
       await tester.pumpAndSettle();
 
-  // Should be back at welcome step
-  expect(find.text('Welcome to Travel Wizards!'), findsOneWidget);
+      // Should be back at welcome step
+      expect(find.text('Welcome to Travel Wizards!'), findsOneWidget);
     });
 
     testWidgets('profile step has all gender options', (
@@ -237,7 +248,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to profile step
-  final nextButton = find.text('Next');
+      final nextButton = find.text('Next');
       await tester.tap(nextButton);
       await tester.pumpAndSettle();
 
