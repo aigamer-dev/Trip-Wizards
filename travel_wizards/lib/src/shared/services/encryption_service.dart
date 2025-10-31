@@ -33,7 +33,9 @@ class EncryptionService {
     final userDoc = await _firestore.collection('users').doc(uid).get();
     final data = userDoc.data();
 
-    if (data != null && data['publicKey'] != null && data['privateKey'] != null) {
+    if (data != null &&
+        data['publicKey'] != null &&
+        data['privateKey'] != null) {
       // Parse existing keys
       final parser = encrypt.RSAKeyParser();
       final publicKey = parser.parse(data['publicKey']) as RSAPublicKey;
@@ -63,16 +65,19 @@ class EncryptionService {
   RSAKeyPair _generateRSAKeyPair() {
     final keyGen = RSAKeyGenerator();
     final secureRandom = FortunaRandom();
-    
+
     final random = Random.secure();
     final seeds = List<int>.generate(32, (_) => random.nextInt(256));
     secureRandom.seed(pc.KeyParameter(Uint8List.fromList(seeds)));
-    
+
     final params = RSAKeyGeneratorParameters(BigInt.from(65537), 2048, 12);
     keyGen.init(pc.ParametersWithRandom(params, secureRandom));
-    
+
     final pair = keyGen.generateKeyPair();
-    return RSAKeyPair(pair.publicKey as RSAPublicKey, pair.privateKey as RSAPrivateKey);
+    return RSAKeyPair(
+      pair.publicKey as RSAPublicKey,
+      pair.privateKey as RSAPrivateKey,
+    );
   }
 
   /// Get public key for a specific user
@@ -85,7 +90,7 @@ class EncryptionService {
     // Fetch from Firestore
     final userDoc = await _firestore.collection('users').doc(userId).get();
     final data = userDoc.data();
-    
+
     if (data == null || data['publicKey'] == null) {
       throw Exception('Public key not found for user $userId');
     }
@@ -111,10 +116,10 @@ class EncryptionService {
 
     // Encrypt AES key with each recipient's public key
     final encryptedKeys = <String, String>{};
-    
+
     // Include sender's key so they can decrypt their own messages
     final currentUserId = _auth.currentUser?.uid;
-    final allRecipients = currentUserId != null 
+    final allRecipients = currentUserId != null
         ? {...recipientIds, currentUserId}.toList()
         : recipientIds;
 
@@ -124,7 +129,9 @@ class EncryptionService {
         final parser = encrypt.RSAKeyParser();
         final publicKey = parser.parse(publicKeyPem) as RSAPublicKey;
 
-        final rsaEncrypter = encrypt.Encrypter(encrypt.RSA(publicKey: publicKey));
+        final rsaEncrypter = encrypt.Encrypter(
+          encrypt.RSA(publicKey: publicKey),
+        );
         final encryptedKey = rsaEncrypter.encrypt(base64.encode(aesKey.bytes));
         encryptedKeys[recipientId] = encryptedKey.base64;
       } catch (e) {
@@ -151,7 +158,8 @@ class EncryptionService {
       final keyPair = await getOrCreateKeyPair();
 
       // Get the encrypted AES key for this user
-      final encryptedKeys = encryptedData['encryptedKeys'] as Map<String, dynamic>?;
+      final encryptedKeys =
+          encryptedData['encryptedKeys'] as Map<String, dynamic>?;
       if (encryptedKeys == null || !encryptedKeys.containsKey(uid)) {
         throw Exception('No encrypted key found for current user');
       }
@@ -159,7 +167,9 @@ class EncryptionService {
       final encryptedKeyBase64 = encryptedKeys[uid] as String;
 
       // Decrypt AES key using RSA private key
-      final rsaEncrypter = encrypt.Encrypter(encrypt.RSA(privateKey: keyPair.privateKey));
+      final rsaEncrypter = encrypt.Encrypter(
+        encrypt.RSA(privateKey: keyPair.privateKey),
+      );
       final encryptedKey = encrypt.Encrypted.fromBase64(encryptedKeyBase64);
       final aesKeyBase64 = rsaEncrypter.decrypt(encryptedKey);
       final aesKeyBytes = base64.decode(aesKeyBase64);
@@ -190,10 +200,10 @@ class EncryptionService {
   String _encodePublicKeyToPem(RSAPublicKey publicKey) {
     final modulus = publicKey.modulus!;
     final exponent = publicKey.exponent!;
-    
+
     final modulusBytes = _encodeBigInt(modulus);
     final exponentBytes = _encodeBigInt(exponent);
-    
+
     final keyBytes = base64.encode([...modulusBytes, ...exponentBytes]);
     return '-----BEGIN PUBLIC KEY-----\n$keyBytes\n-----END PUBLIC KEY-----';
   }
@@ -202,10 +212,10 @@ class EncryptionService {
   String _encodePrivateKeyToPem(RSAPrivateKey privateKey) {
     final modulus = privateKey.modulus!;
     final privateExponent = privateKey.privateExponent!;
-    
+
     final modulusBytes = _encodeBigInt(modulus);
     final exponentBytes = _encodeBigInt(privateExponent);
-    
+
     final keyBytes = base64.encode([...modulusBytes, ...exponentBytes]);
     return '-----BEGIN PRIVATE KEY-----\n$keyBytes\n-----END PRIVATE KEY-----';
   }

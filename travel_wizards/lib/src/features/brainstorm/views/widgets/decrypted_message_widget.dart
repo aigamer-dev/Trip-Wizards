@@ -7,11 +7,7 @@ class DecryptedMessageWidget extends StatefulWidget {
   final ChatMessage message;
   final TextStyle? style;
 
-  const DecryptedMessageWidget({
-    super.key,
-    required this.message,
-    this.style,
-  });
+  const DecryptedMessageWidget({super.key, required this.message, this.style});
 
   @override
   State<DecryptedMessageWidget> createState() => _DecryptedMessageWidgetState();
@@ -41,9 +37,10 @@ class _DecryptedMessageWidgetState extends State<DecryptedMessageWidget> {
     });
 
     try {
-      final decrypted = await EncryptionService.instance
-          .decryptMessage(widget.message.encryptedData!);
-      
+      final decrypted = await EncryptionService.instance.decryptMessage(
+        widget.message.encryptedData!,
+      );
+
       if (mounted) {
         setState(() {
           _decryptedMessage = decrypted;

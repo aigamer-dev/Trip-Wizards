@@ -29,25 +29,28 @@ class ChatMessage {
   factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final isEncrypted = data['isEncrypted'] ?? false;
-    
+
     String displayMessage = data['message'] ?? '';
-    
+
     // Try to decrypt if encrypted
     if (isEncrypted && data['encryptedData'] != null) {
       try {
         final encryptedDataMap = data['encryptedData'] as Map<String, dynamic>;
         displayMessage = '[Encrypted message - decrypting...]';
         // Actual decryption happens asynchronously
-        EncryptionService.instance.decryptMessage(encryptedDataMap).then((decrypted) {
-          displayMessage = decrypted;
-        }).catchError((e) {
-          displayMessage = '[Unable to decrypt]';
-        });
+        EncryptionService.instance
+            .decryptMessage(encryptedDataMap)
+            .then((decrypted) {
+              displayMessage = decrypted;
+            })
+            .catchError((e) {
+              displayMessage = '[Unable to decrypt]';
+            });
       } catch (e) {
         displayMessage = '[Decryption error]';
       }
     }
-    
+
     return ChatMessage(
       id: doc.id,
       senderId: data['senderId'] ?? '',
@@ -70,14 +73,14 @@ class ChatMessage {
       'mentions': mentions,
       'isEncrypted': isEncrypted,
     };
-    
+
     if (isEncrypted && encryptedData != null) {
       map['encryptedData'] = encryptedData;
       map['message'] = '[Encrypted]'; // Placeholder
     } else {
       map['message'] = message;
     }
-    
+
     return map;
   }
 }
