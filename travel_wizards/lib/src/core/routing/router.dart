@@ -188,7 +188,9 @@ GoRouter _buildRouter() {
         pageBuilder: (context, state) {
           final tripId = state.pathParameters['tripId'] ?? '';
           final buddiesParam = state.uri.queryParameters['buddies'] ?? '';
-          final buddies = buddiesParam.isEmpty ? <String>[] : buddiesParam.split(',');
+          final buddies = buddiesParam.isEmpty
+              ? <String>[]
+              : buddiesParam.split(',');
           return fadePage(ExpensesScreen(tripId: tripId, tripBuddies: buddies));
         },
       ),

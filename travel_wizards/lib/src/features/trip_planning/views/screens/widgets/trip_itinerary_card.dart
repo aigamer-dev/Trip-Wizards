@@ -181,7 +181,9 @@ class TripItineraryCard extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Item'),
-        content: const Text('Are you sure you want to delete this itinerary item?'),
+        content: const Text(
+          'Are you sure you want to delete this itinerary item?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -211,9 +213,9 @@ class TripItineraryCard extends StatelessWidget {
           .delete();
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Itinerary item deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Itinerary item deleted')));
       }
     } catch (e) {
       ErrorHandlingService.instance.handleError(

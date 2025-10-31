@@ -77,7 +77,9 @@ class TripActionsBar extends StatelessWidget {
                     context.pushNamed(
                       'group_chat',
                       pathParameters: {'tripId': tripId},
-                      queryParameters: {'tripName': data['title'] as String? ?? 'Trip'},
+                      queryParameters: {
+                        'tripName': data['title'] as String? ?? 'Trip',
+                      },
                     );
                   },
                   icon: const Icon(Symbols.chat_rounded),
@@ -89,7 +91,9 @@ class TripActionsBar extends StatelessWidget {
                 button: true,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    final buddies = (data['buddies'] as List?)?.cast<String>() ?? <String>[];
+                    final buddies =
+                        (data['buddies'] as List?)?.cast<String>() ??
+                        <String>[];
                     context.pushNamed(
                       'expenses',
                       pathParameters: {'tripId': tripId},

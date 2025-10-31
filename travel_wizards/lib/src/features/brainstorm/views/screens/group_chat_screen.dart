@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:travel_wizards/src/shared/services/group_chat_service.dart';
 import 'package:travel_wizards/src/shared/widgets/layout/modern_page_scaffold.dart';
+import 'package:travel_wizards/src/features/brainstorm/views/widgets/decrypted_message_widget.dart';
 import 'package:intl/intl.dart';
 
 class GroupChatScreen extends StatefulWidget {
@@ -36,7 +37,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _loadBuddies() async {
-    final buddies = await GroupChatService.instance.getTripBuddies(widget.tripId);
+    final buddies = await GroupChatService.instance.getTripBuddies(
+      widget.tripId,
+    );
     if (mounted) {
       setState(() {
         _buddies = buddies;
@@ -89,10 +92,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     label: const Text('You'),
                     avatar: const Icon(Icons.person, size: 16),
                   ),
-                  ..._buddies.map((buddy) => Chip(
-                        label: Text(buddy),
-                        avatar: const Icon(Icons.person_outline, size: 16),
-                      )),
+                  ..._buddies.map(
+                    (buddy) => Chip(
+                      label: Text(buddy),
+                      avatar: const Icon(Icons.person_outline, size: 16),
+                    ),
+                  ),
                   Chip(
                     label: const Text('AI Wizard'),
                     avatar: const Icon(Icons.auto_awesome, size: 16),
@@ -110,9 +115,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
+                  return Center(child: Text('Error: ${snapshot.error}'));
                 }
 
                 final messages = snapshot.data ?? [];
@@ -188,14 +191,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         constraints: const BoxConstraints(maxWidth: 500),
         margin: const EdgeInsets.only(bottom: 12),
         child: Column(
-          crossAxisAlignment:
-              isAi ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          crossAxisAlignment: isAi
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.end,
           children: [
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (isAi)
-                  Icon(Icons.auto_awesome, size: 16, color: colorScheme.tertiary),
+                  Icon(
+                    Icons.auto_awesome,
+                    size: 16,
+                    color: colorScheme.tertiary,
+                  ),
                 if (isAi) const SizedBox(width: 4),
                 Text(
                   message.senderName,
@@ -218,8 +226,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   bottomRight: Radius.circular(isAi ? 16 : 4),
                 ),
               ),
-              child: Text(
-                message.message,
+              child: DecryptedMessageWidget(
+                message: message,
                 style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
               ),
             ),

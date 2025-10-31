@@ -8,10 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 class AddItineraryDialog extends StatefulWidget {
   final String tripId;
 
-  const AddItineraryDialog({
-    super.key,
-    required this.tripId,
-  });
+  const AddItineraryDialog({super.key, required this.tripId});
 
   @override
   State<AddItineraryDialog> createState() => _AddItineraryDialogState();
@@ -22,12 +19,12 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
   final _titleController = TextEditingController();
   final _locationController = TextEditingController();
   final _notesController = TextEditingController();
-  
+
   DateTime? _startDate;
   TimeOfDay? _startTime;
   DateTime? _endDate;
   TimeOfDay? _endTime;
-  
+
   String _category = 'Activity';
   bool _isSubmitting = false;
 
@@ -53,11 +50,13 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
   Future<void> _selectDate(BuildContext context, bool isStart) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isStart ? (_startDate ?? DateTime.now()) : (_endDate ?? DateTime.now()),
+      initialDate: isStart
+          ? (_startDate ?? DateTime.now())
+          : (_endDate ?? DateTime.now()),
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
     );
-    
+
     if (picked != null) {
       setState(() {
         if (isStart) {
@@ -72,9 +71,11 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
   Future<void> _selectTime(BuildContext context, bool isStart) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: isStart ? (_startTime ?? TimeOfDay.now()) : (_endTime ?? TimeOfDay.now()),
+      initialTime: isStart
+          ? (_startTime ?? TimeOfDay.now())
+          : (_endTime ?? TimeOfDay.now()),
     );
-    
+
     if (picked != null) {
       setState(() {
         if (isStart) {
@@ -94,7 +95,7 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
 
   Future<void> _submitItinerary() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_startDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a start date')),
@@ -118,14 +119,14 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
           .doc(widget.tripId)
           .collection('itinerary')
           .add({
-        'title': _titleController.text.trim(),
-        'location': _locationController.text.trim(),
-        'notes': _notesController.text.trim(),
-        'category': _category,
-        'start': startDateTime?.toIso8601String(),
-        'end': endDateTime?.toIso8601String(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+            'title': _titleController.text.trim(),
+            'location': _locationController.text.trim(),
+            'notes': _notesController.text.trim(),
+            'category': _category,
+            'start': startDateTime?.toIso8601String(),
+            'end': endDateTime?.toIso8601String(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
 
       if (mounted) {
         Navigator.pop(context, true);
@@ -135,9 +136,9 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     } finally {
       if (mounted) {
@@ -214,17 +215,17 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
-                'Start Date & Time *',
-                style: theme.textTheme.titleSmall,
-              ),
+              Text('Start Date & Time *', style: theme.textTheme.titleSmall),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _selectDate(context, true),
-                      icon: const Icon(Symbols.calendar_today_rounded, size: 18),
+                      icon: const Icon(
+                        Symbols.calendar_today_rounded,
+                        size: 18,
+                      ),
                       label: Text(
                         _startDate != null
                             ? dateFormat.format(_startDate!)
@@ -257,7 +258,10 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _selectDate(context, false),
-                      icon: const Icon(Symbols.calendar_today_rounded, size: 18),
+                      icon: const Icon(
+                        Symbols.calendar_today_rounded,
+                        size: 18,
+                      ),
                       label: Text(
                         _endDate != null
                             ? dateFormat.format(_endDate!)
@@ -271,9 +275,7 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
                       onPressed: () => _selectTime(context, false),
                       icon: const Icon(Symbols.schedule_rounded, size: 18),
                       label: Text(
-                        _endTime != null
-                            ? _endTime!.format(context)
-                            : 'Time',
+                        _endTime != null ? _endTime!.format(context) : 'Time',
                       ),
                     ),
                   ),

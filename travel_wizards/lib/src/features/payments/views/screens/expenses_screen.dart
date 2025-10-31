@@ -59,19 +59,21 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 8),
-                ...widget.tripBuddies.map((buddy) => CheckboxListTile(
-                      title: Text(buddy),
-                      value: selectedMembers.contains(buddy),
-                      onChanged: (value) {
-                        setState(() {
-                          if (value == true) {
-                            selectedMembers.add(buddy);
-                          } else {
-                            selectedMembers.remove(buddy);
-                          }
-                        });
-                      },
-                    )),
+                ...widget.tripBuddies.map(
+                  (buddy) => CheckboxListTile(
+                    title: Text(buddy),
+                    value: selectedMembers.contains(buddy),
+                    onChanged: (value) {
+                      setState(() {
+                        if (value == true) {
+                          selectedMembers.add(buddy);
+                        } else {
+                          selectedMembers.remove(buddy);
+                        }
+                      });
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -148,25 +150,28 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   Text(
                     'No expenses yet',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Tap + to add your first expense',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             );
           }
 
-          final balances = PaymentSplitService.instance
-              .calculateBalances(expenses, widget.tripBuddies);
-          final settlements =
-              PaymentSplitService.instance.suggestSettlements(balances);
+          final balances = PaymentSplitService.instance.calculateBalances(
+            expenses,
+            widget.tripBuddies,
+          );
+          final settlements = PaymentSplitService.instance.suggestSettlements(
+            balances,
+          );
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -253,34 +258,36 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 Text(
                   'Suggested Settlements',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: colorScheme.onSecondaryContainer,
-                      ),
+                    color: colorScheme.onSecondaryContainer,
+                  ),
                 ),
               ],
             ),
             const Divider(height: 24),
-            ...settlements.map((settlement) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${settlement.from} → ${settlement.to}',
-                          style: TextStyle(
-                            color: colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        _currencyFormat.format(settlement.amount),
+            ...settlements.map(
+              (settlement) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${settlement.from} → ${settlement.to}',
                         style: TextStyle(
                           color: colorScheme.onSecondaryContainer,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                    Text(
+                      _currencyFormat.format(settlement.amount),
+                      style: TextStyle(
+                        color: colorScheme.onSecondaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -305,23 +312,25 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               ],
             ),
             const Divider(height: 24),
-            ...expenses.map((expense) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    child: Text(expense.description[0].toUpperCase()),
+            ...expenses.map(
+              (expense) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  child: Text(expense.description[0].toUpperCase()),
+                ),
+                title: Text(expense.description),
+                subtitle: Text(
+                  'Paid by ${expense.paidBy} • Split among ${expense.splitAmong.length}',
+                ),
+                trailing: Text(
+                  _currencyFormat.format(expense.amount),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
-                  title: Text(expense.description),
-                  subtitle: Text(
-                    'Paid by ${expense.paidBy} • Split among ${expense.splitAmong.length}',
-                  ),
-                  trailing: Text(
-                    _currencyFormat.format(expense.amount),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                )),
+                ),
+              ),
+            ),
           ],
         ),
       ),

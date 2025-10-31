@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'encryption_service.dart';
 
 class ChatMessage {
   final String id;
@@ -10,6 +11,8 @@ class ChatMessage {
   final DateTime timestamp;
   final bool isAiResponse;
   final List<String> mentions;
+  final bool isEncrypted;
+  final Map<String, dynamic>? encryptedData;
 
   ChatMessage({
     required this.id,
@@ -19,30 +22,63 @@ class ChatMessage {
     required this.timestamp,
     this.isAiResponse = false,
     this.mentions = const [],
+    this.isEncrypted = false,
+    this.encryptedData,
   });
 
   factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final isEncrypted = data['isEncrypted'] ?? false;
+    
+    String displayMessage = data['message'] ?? '';
+    
+    // Try to decrypt if encrypted
+    if (isEncrypted && data['encryptedData'] != null) {
+      try {
+        final encryptedDataMap = data['encryptedData'] as Map<String, dynamic>;
+        displayMessage = '[Encrypted message - decrypting...]';
+        // Actual decryption happens asynchronously
+        EncryptionService.instance.decryptMessage(encryptedDataMap).then((decrypted) {
+          displayMessage = decrypted;
+        }).catchError((e) {
+          displayMessage = '[Unable to decrypt]';
+        });
+      } catch (e) {
+        displayMessage = '[Decryption error]';
+      }
+    }
+    
     return ChatMessage(
       id: doc.id,
       senderId: data['senderId'] ?? '',
       senderName: data['senderName'] ?? 'Unknown',
-      message: data['message'] ?? '',
+      message: displayMessage,
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isAiResponse: data['isAiResponse'] ?? false,
       mentions: List<String>.from(data['mentions'] ?? []),
+      isEncrypted: isEncrypted,
+      encryptedData: data['encryptedData'] as Map<String, dynamic>?,
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {
+    final map = <String, dynamic>{
       'senderId': senderId,
       'senderName': senderName,
-      'message': message,
       'timestamp': FieldValue.serverTimestamp(),
       'isAiResponse': isAiResponse,
       'mentions': mentions,
+      'isEncrypted': isEncrypted,
     };
+    
+    if (isEncrypted && encryptedData != null) {
+      map['encryptedData'] = encryptedData;
+      map['message'] = '[Encrypted]'; // Placeholder
+    } else {
+      map['message'] = message;
+    }
+    
+    return map;
   }
 }
 
@@ -70,6 +106,7 @@ class GroupChatService {
     required String tripId,
     required String message,
     bool isAiResponse = false,
+    bool enableEncryption = true,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -77,6 +114,28 @@ class GroupChatService {
     final mentions = _extractMentions(message);
     final shouldTriggerAi =
         mentions.contains('@ai') || mentions.contains('@wizard');
+
+    // Get trip buddies for encryption
+    final buddies = await getTripBuddies(tripId);
+    Map<String, dynamic>? encryptedData;
+    bool isEncrypted = false;
+
+    // Encrypt message if enabled and there are buddies
+    if (enableEncryption && buddies.isNotEmpty) {
+      try {
+        encryptedData = await EncryptionService.instance.encryptMessage(
+          message,
+          buddies,
+        );
+        isEncrypted = true;
+      } catch (e) {
+        if (kDebugMode) {
+          print('Encryption failed, sending unencrypted: $e');
+        }
+        // Fall back to unencrypted if encryption fails
+        isEncrypted = false;
+      }
+    }
 
     final chatMessage = ChatMessage(
       id: '',
@@ -86,6 +145,8 @@ class GroupChatService {
       timestamp: DateTime.now(),
       isAiResponse: isAiResponse,
       mentions: mentions,
+      isEncrypted: isEncrypted,
+      encryptedData: encryptedData,
     );
 
     await _firestore
