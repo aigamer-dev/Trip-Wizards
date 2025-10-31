@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'encryption_service.dart';
+import 'adk_api_service.dart';
 
 class ChatMessage {
   final String id;
@@ -165,7 +166,15 @@ class GroupChatService {
 
   Future<void> _generateAiResponse(String tripId, String userMessage) async {
     try {
-      final response = await _callAiService(userMessage);
+      final user = FirebaseAuth.instance.currentUser;
+      final userId = user?.uid ?? 'anonymous';
+
+      // Call the ADK API service
+      final response = await AdkApiService().generateResponse(
+        tripId: tripId,
+        message: userMessage,
+        userId: userId,
+      );
 
       await _firestore.collection('trips').doc(tripId).collection('chat').add({
         'senderId': 'ai',
@@ -174,15 +183,23 @@ class GroupChatService {
         'timestamp': FieldValue.serverTimestamp(),
         'isAiResponse': true,
         'mentions': [],
+        'isEncrypted': false, // AI responses are not encrypted
       });
     } catch (e) {
       debugPrint('Error generating AI response: $e');
-    }
-  }
 
-  Future<String> _callAiService(String message) async {
-    await Future.delayed(const Duration(seconds: 1));
-    return 'AI: Based on your message "$message", I suggest exploring destinations that match your interests. Would you like specific recommendations?';
+      // Send fallback error message
+      await _firestore.collection('trips').doc(tripId).collection('chat').add({
+        'senderId': 'ai',
+        'senderName': 'Travel Wizard AI',
+        'message':
+            'I apologize, but I\'m having trouble connecting to the AI service. Please try again in a moment.',
+        'timestamp': FieldValue.serverTimestamp(),
+        'isAiResponse': true,
+        'mentions': [],
+        'isEncrypted': false,
+      });
+    }
   }
 
   List<String> _extractMentions(String message) {
