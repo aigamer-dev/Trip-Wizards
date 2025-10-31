@@ -472,24 +472,27 @@ class _OptimizedIdeaCardState extends State<_OptimizedIdeaCard> {
                       left: 16,
                       right: 16,
                       bottom: 16,
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          for (final tag in tags)
-                            Chip(
-                              label: Text(tag),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final tag in tags) ...[
+                              Chip(
+                                label: Text(tag),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                labelStyle: theme.textTheme.labelMedium?.copyWith(
+                                  color: scheme.onSecondaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                backgroundColor: scheme.secondaryContainer,
                               ),
-                              visualDensity: VisualDensity.compact,
-                              labelStyle: theme.textTheme.labelMedium?.copyWith(
-                                color: scheme.onSecondaryContainer,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              backgroundColor: scheme.secondaryContainer,
-                            ),
-                        ],
+                              if (tag != tags.last) const SizedBox(width: 8),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -634,5 +637,215 @@ class _OptimizedIdeaCardState extends State<_OptimizedIdeaCard> {
       default:
         return 'Flexible';
     }
+  }
+}
+
+/// Filter bottom sheet with organized sections
+class OptimizedFilterSheet extends StatefulWidget {
+  const OptimizedFilterSheet({
+    super.key,
+    required this.controller,
+    required this.useRemote,
+  });
+
+  final ExploreController controller;
+  final bool useRemote;
+
+  @override
+  State<OptimizedFilterSheet> createState() => _OptimizedFilterSheetState();
+}
+
+class _OptimizedFilterSheetState extends State<OptimizedFilterSheet> {
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 16, 16),
+              child: Row(
+                children: [
+                  Text(
+                    'Filters',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      widget.controller.clearFilters(useRemote: widget.useRemote);
+                      setState(() {});
+                    },
+                    child: const Text('Clear all'),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Filter content
+            Expanded(
+              child: ListenableBuilder(
+                listenable: widget.controller,
+                builder: (context, _) => ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    _buildSection(
+                      'Trip Type',
+                      Icons.style_rounded,
+                      [
+                        _buildTagChip(
+                          t.tagWeekend,
+                          'Weekend',
+                          widget.controller.selectedTags.contains('Weekend'),
+                        ),
+                        _buildTagChip(
+                          t.tagAdventure,
+                          'Adventure',
+                          widget.controller.selectedTags.contains('Adventure'),
+                        ),
+                        _buildTagChip(
+                          t.tagBudget,
+                          'Budget',
+                          widget.controller.selectedTags.contains('Budget'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _buildSection(
+                      'Budget Range',
+                      Icons.account_balance_wallet_rounded,
+                      [
+                        _buildBudgetChip(t.budgetLow, 'low'),
+                        _buildBudgetChip(t.budgetMedium, 'medium'),
+                        _buildBudgetChip(t.budgetHigh, 'high'),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _buildSection(
+                      'Trip Duration',
+                      Icons.calendar_today_rounded,
+                      [
+                        _buildDurationChip(t.duration2to3, '2-3'),
+                        _buildDurationChip(t.duration4to5, '4-5'),
+                        _buildDurationChip(t.duration6plus, '6+'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Apply button
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                  ),
+                  child: const Text('Apply Filters'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, IconData icon, List<Widget> chips) {
+    final theme = Theme.of(context);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: chips,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTagChip(String label, String tag, bool selected) {
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) {
+        widget.controller.toggleTag(tag);
+        setState(() {});
+      },
+    );
+  }
+
+  Widget _buildBudgetChip(String label, String budget) {
+    final selected = widget.controller.filterBudget == budget;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) {
+        final newBudget = widget.controller.filterBudget == budget ? null : budget;
+        widget.controller.setFilterBudget(newBudget);
+        setState(() {});
+      },
+    );
+  }
+
+  Widget _buildDurationChip(String label, String duration) {
+    final selected = widget.controller.filterDuration == duration;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) {
+        final newDuration = widget.controller.filterDuration == duration ? null : duration;
+        widget.controller.setFilterDuration(newDuration);
+        setState(() {});
+      },
+    );
   }
 }

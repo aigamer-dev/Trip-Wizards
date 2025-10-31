@@ -120,12 +120,8 @@ class _EnhancedExploreScreenState extends State<EnhancedExploreScreen>
                 if (_currentQuery != null && _currentQuery!.isNotEmpty)
                   _buildResultsHeader(t),
 
-                // Filter chips
-                OptimizedFilterChips(
-                  controller: _controller,
-                  useRemote: _shouldUseRemote(),
-                  onFilterChanged: _onFiltersChanged,
-                ),
+                // Filter button and active filter indicators
+                _buildFilterRow(t),
                 Gaps.h8,
 
                 // Performance metrics (debug only)
@@ -232,6 +228,62 @@ class _EnhancedExploreScreenState extends State<EnhancedExploreScreen>
     );
   }
 
+  Widget _buildFilterRow(AppLocalizations t) {
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final hasActiveFilters = _controller.selectedTags.isNotEmpty ||
+            _controller.filterBudget != null ||
+            _controller.filterDuration != null;
+        final theme = Theme.of(context);
+
+        return Row(
+          children: [
+            FilledButton.tonalIcon(
+              onPressed: _showFilterSheet,
+              icon: const Icon(Icons.tune_rounded),
+              label: Text(hasActiveFilters ? 'Filters (${_getFilterCount()})' : 'Filters'),
+            ),
+            if (hasActiveFilters) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: () {
+                  _controller.clearFilters(useRemote: _shouldUseRemote());
+                },
+                child: const Text('Clear all'),
+              ),
+            ],
+            const Spacer(),
+            if (hasActiveFilters)
+              Text(
+                '${_controller.totalResults} results',
+                style: theme.textTheme.bodySmall,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  int _getFilterCount() {
+    int count = 0;
+    count += _controller.selectedTags.length;
+    if (_controller.filterBudget != null) count++;
+    if (_controller.filterDuration != null) count++;
+    return count;
+  }
+
+  void _showFilterSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => OptimizedFilterSheet(
+        controller: _controller,
+        useRemote: _shouldUseRemote(),
+      ),
+    );
+  }
+
   Widget _buildPerformanceMetrics() {
     return ListenableBuilder(
       listenable: _controller,
@@ -305,10 +357,7 @@ class _EnhancedExploreScreenState extends State<EnhancedExploreScreen>
     _updateUrlWithQuery('');
   }
 
-  void _onFiltersChanged() {
-    // Filters automatically trigger search through the controller
-    // No additional action needed
-  }
+
 
   void _onRefresh() {
     _controller.refresh(useRemote: _shouldUseRemote());

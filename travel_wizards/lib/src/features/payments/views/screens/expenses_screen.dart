@@ -23,7 +23,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   void _showAddExpenseDialog() {
     final descriptionController = TextEditingController();
     final amountController = TextEditingController();
-    final selectedMembers = <String>{...widget.tripBuddies};
+    
+    // Get available members (either from tripBuddies or default to current user)
+    final availableMembers = widget.tripBuddies.isNotEmpty
+        ? widget.tripBuddies
+        : ['You'];
+    final selectedMembers = <String>{...availableMembers};
 
     showDialog(
       context: context,
@@ -59,21 +64,30 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 8),
-                ...widget.tripBuddies.map(
-                  (buddy) => CheckboxListTile(
-                    title: Text(buddy),
-                    value: selectedMembers.contains(buddy),
-                    onChanged: (value) {
-                      setState(() {
-                        if (value == true) {
-                          selectedMembers.add(buddy);
-                        } else {
-                          selectedMembers.remove(buddy);
-                        }
-                      });
-                    },
+                if (availableMembers.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No collaborators added yet. Expense will be added to your account.',
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  )
+                else
+                  ...availableMembers.map(
+                    (buddy) => CheckboxListTile(
+                      title: Text(buddy),
+                      value: selectedMembers.contains(buddy),
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            selectedMembers.add(buddy);
+                          } else {
+                            selectedMembers.remove(buddy);
+                          }
+                        });
+                      },
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -85,23 +99,44 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             FilledButton(
               onPressed: () async {
                 if (descriptionController.text.isEmpty ||
-                    amountController.text.isEmpty ||
-                    selectedMembers.isEmpty) {
+                    amountController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please fill in all fields'),
+                    ),
+                  );
                   return;
                 }
 
                 final amount = double.tryParse(amountController.text);
-                if (amount == null || amount <= 0) return;
+                if (amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid amount'),
+                    ),
+                  );
+                  return;
+                }
+
+                // Use selected members if any, otherwise default to current user
+                final membersToSplit = selectedMembers.isNotEmpty
+                    ? selectedMembers.toList()
+                    : availableMembers;
 
                 await PaymentSplitService.instance.addExpense(
                   tripId: widget.tripId,
                   description: descriptionController.text,
                   amount: amount,
-                  splitAmong: selectedMembers.toList(),
+                  splitAmong: membersToSplit,
                 );
 
                 if (context.mounted) {
                   Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Expense added successfully'),
+                    ),
+                  );
                 }
               },
               child: const Text('Add'),
