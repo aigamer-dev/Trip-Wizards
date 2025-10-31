@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:travel_wizards/src/shared/services/error_handling_service.dart';
 import 'package:travel_wizards/src/shared/widgets/spacing.dart';
+import 'add_itinerary_dialog.dart';
 
 /// A card widget that displays the trip itinerary.
 ///
@@ -63,13 +64,29 @@ class TripItineraryCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Itinerary', style: Theme.of(context).textTheme.titleMedium),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Itinerary', style: Theme.of(context).textTheme.titleMedium),
+            IconButton(
+              icon: const Icon(Symbols.add_circle_outline),
+              onPressed: () => _showAddItineraryDialog(context),
+              tooltip: 'Add itinerary item',
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         Text(
-          'Itinerary not added yet. You can manage your day-wise plan here later.',
+          'No itinerary items yet. Tap + to add your first activity.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () => _showAddItineraryDialog(context),
+          icon: const Icon(Symbols.add_rounded),
+          label: const Text('Add Activity'),
         ),
       ],
     );
@@ -82,18 +99,38 @@ class TripItineraryCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Itinerary', style: Theme.of(context).textTheme.titleMedium),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Itinerary', style: Theme.of(context).textTheme.titleMedium),
+            IconButton(
+              icon: const Icon(Symbols.add_circle_outline),
+              onPressed: () => _showAddItineraryDialog(context),
+              tooltip: 'Add itinerary item',
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
-        ...docs.map((doc) => _buildItineraryItem(doc)),
+        ...docs.map((doc) => _buildItineraryItem(context, doc)),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () => _showAddItineraryDialog(context),
+          icon: const Icon(Symbols.add_rounded),
+          label: const Text('Add More'),
+        ),
       ],
     );
   }
 
-  Widget _buildItineraryItem(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+  Widget _buildItineraryItem(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
     final data = doc.data();
     final title = (data['title'] as String?) ?? 'Activity';
     final when = _parseDate(data['start']);
     final location = (data['location'] as String?) ?? '';
+    final category = (data['category'] as String?) ?? 'Activity';
 
     final subtitle = [
       if (when != null) _fmtDate(when),
@@ -102,10 +139,89 @@ class TripItineraryCard extends StatelessWidget {
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: const Icon(Symbols.schedule_rounded),
+      leading: Icon(_getCategoryIcon(category)),
       title: Text(title),
       subtitle: subtitle.isEmpty ? null : Text(subtitle),
+      trailing: IconButton(
+        icon: const Icon(Symbols.delete_outline, size: 20),
+        onPressed: () => _deleteItineraryItem(context, doc.id),
+        tooltip: 'Delete',
+      ),
     );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Transportation':
+        return Symbols.directions_car_rounded;
+      case 'Accommodation':
+        return Symbols.hotel_rounded;
+      case 'Dining':
+        return Symbols.restaurant_rounded;
+      case 'Sightseeing':
+        return Symbols.photo_camera_rounded;
+      case 'Shopping':
+        return Symbols.shopping_bag_rounded;
+      case 'Entertainment':
+        return Symbols.celebration_rounded;
+      default:
+        return Symbols.schedule_rounded;
+    }
+  }
+
+  void _showAddItineraryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AddItineraryDialog(tripId: tripId),
+    );
+  }
+
+  Future<void> _deleteItineraryItem(BuildContext context, String itemId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Item'),
+        content: const Text('Are you sure you want to delete this itinerary item?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('trips')
+          .doc(tripId)
+          .collection('itinerary')
+          .doc(itemId)
+          .delete();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Itinerary item deleted')),
+        );
+      }
+    } catch (e) {
+      ErrorHandlingService.instance.handleError(
+        e,
+        context: 'Delete itinerary item',
+        showToUser: true,
+      );
+    }
   }
 
   String _fmtDate(DateTime d) => d.toLocal().toString().split(' ').first;
