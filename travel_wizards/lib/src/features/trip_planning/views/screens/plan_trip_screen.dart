@@ -649,37 +649,9 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
             TripPlanningStep.stayActivities,
             Icons.hotel,
           ),
-          VGap(32),
-
-          // Generate Button
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: controller.isLoading
-                  ? null
-                  : () => _handleGenerateTrip(context),
-              icon: controller.isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.auto_awesome),
-              label: Text(
-                controller.isLoading
-                    ? 'Generating...'
-                    : 'Generate Trip Itinerary',
-              ),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                textStyle: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
 
           if (controller.errorMessage != null) ...[
+            VGap(16),
             VGap(16),
             Container(
               padding: const EdgeInsets.all(16),

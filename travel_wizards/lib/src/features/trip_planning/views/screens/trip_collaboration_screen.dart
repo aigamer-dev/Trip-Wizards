@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:travel_wizards/src/shared/widgets/spacing.dart';
 import 'package:travel_wizards/src/shared/models/collaborative_trip.dart';
 import 'package:travel_wizards/src/shared/services/collaborative_trip_service.dart';
@@ -321,15 +322,81 @@ class _TripCollaborationScreenState extends State<TripCollaborationScreen>
           children: [
             Text('Invite New Member', style: theme.textTheme.titleMedium),
             Gaps.h8,
-            TextFormField(
-              controller: _inviteEmailController,
-              decoration: const InputDecoration(
-                labelText: 'Email Address',
-                hintText: 'Enter email to invite',
-                prefixIcon: Icon(Icons.email),
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
+            Autocomplete<Map<String, String>>(
+              optionsBuilder: (TextEditingValue textEditingValue) async {
+                if (textEditingValue.text.length < 2) {
+                  return const Iterable<Map<String, String>>.empty();
+                }
+                try {
+                  final querySnapshot = await FirebaseFirestore.instance
+                      .collection('users')
+                      .where('email', isGreaterThanOrEqualTo: textEditingValue.text.toLowerCase())
+                      .where('email', isLessThan: '${textEditingValue.text.toLowerCase()}z')
+                      .limit(10)
+                      .get();
+                  
+                  return querySnapshot.docs
+                      .map((doc) => {
+                            'email': doc.data()['email'] as String? ?? '',
+                            'name': doc.data()['displayName'] as String? ?? '',
+                          })
+                      .where((user) => user['email']!.isNotEmpty)
+                      .toList();
+                } catch (e) {
+                  return const Iterable<Map<String, String>>.empty();
+                }
+              },
+              displayStringForOption: (Map<String, String> option) => 
+                  option['name']!.isNotEmpty 
+                      ? '${option['name']} (${option['email']})' 
+                      : option['email']!,
+              onSelected: (Map<String, String> selection) {
+                _inviteEmailController.text = selection['email']!;
+              },
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                return TextFormField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    hintText: 'Start typing to search users...',
+                    helperText: 'Type at least 2 characters to search',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  onChanged: (value) {
+                    _inviteEmailController.text = value;
+                  },
+                );
+              },
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4.0,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final option = options.elementAt(index);
+                          return ListTile(
+                            leading: const Icon(Icons.person),
+                            title: Text(option['name']!.isNotEmpty ? option['name']! : option['email']!),
+                            subtitle: option['name']!.isNotEmpty ? Text(option['email']!) : null,
+                            onTap: () {
+                              onSelected(option);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             Gaps.h8,
             DropdownButtonFormField<TripRole>(

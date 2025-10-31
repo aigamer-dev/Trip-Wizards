@@ -48,14 +48,12 @@ class TripActionsBar extends StatelessWidget {
                 label: 'Edit trip',
                 button: true,
                 child: OutlinedButton.icon(
-                  onPressed: isFinalized
-                      ? null
-                      : () async {
-                          context.pushNamed(
-                            'plan',
-                            extra: PlanTripArgs(tripId: tripId),
-                          );
-                        },
+                  onPressed: () async {
+                    context.pushNamed(
+                      'plan',
+                      extra: PlanTripArgs(tripId: tripId),
+                    );
+                  },
                   icon: const Icon(Symbols.edit_rounded),
                   label: const Text('Edit'),
                 ),
@@ -135,6 +133,45 @@ class TripActionsBar extends StatelessWidget {
                     },
                     icon: const Icon(Symbols.check_rounded),
                     label: const Text('Finalize'),
+                  ),
+                ),
+              if (isFinalized && !isPaid)
+                Semantics(
+                  label: 'Revert to draft',
+                  button: true,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Revert to Draft?'),
+                          content: const Text(
+                            'This will change the trip status back to draft, allowing you to edit it. Continue?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Revert'),
+                            ),
+                          ],
+                        ),
+                      );
+                      
+                      if (confirm == true) {
+                        await _doc().update({'status': 'draft'});
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Trip reverted to draft')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Symbols.undo_rounded),
+                    label: const Text('Revert'),
                   ),
                 ),
               if (isFinalized && !isPaid)
