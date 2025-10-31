@@ -4,6 +4,55 @@ This checklist covers all minute steps for building the Travel Wizards cross-pla
 
 ---
 
+## PRIORITY FEATURES (Added Oct 31, 2024 - 5:38 PM)
+
+### Group Chat in Brainstorm Screen
+
+- [x] Create GroupChatService with Firestore integration
+- [x] Implement AI mention detection (@ai, @wizard triggers)
+- [x] Add solo user auto-AI-response logic
+- [ ] Integrate chat UI into BrainstormScreen with StreamBuilder
+- [ ] Add end-to-end encryption layer (use encrypt package + RSA key exchange)
+- [ ] Implement message encryption/decryption before Firestore storage
+- [ ] Add trip buddy selector to show active chat participants
+- [ ] Test group chat with multiple users
+- [ ] Add typing indicators and read receipts
+
+### Auto Payment Split
+
+- [x] Create PaymentSplitService with expense tracking
+- [x] Implement automatic split calculation algorithm
+- [x] Add settlement suggestions (minimized transactions)
+- [ ] Create ExpensesScreen UI for trip expenses
+- [ ] Add "Add Expense" dialog with split options
+- [ ] Integrate payment split into Trip Details screen
+- [ ] Add payment notifications to trip buddies
+- [ ] Test payment split with multiple group members
+- [ ] Add export functionality for expense reports
+
+### Android Home Screen Widget (Low Priority)
+
+- [ ] Create Android widget configuration in android/
+- [ ] Implement WidgetProvider for upcoming trips
+- [ ] Add widget update service with WorkManager
+- [ ] Design compact widget layout (4x2 grid)
+- [ ] Add tap actions for widget (open trip, refresh)
+- [ ] Test widget on different Android versions
+- [ ] Add widget customization options
+
+### Wear OS Companion App
+
+- [ ] Create wear module in android/
+- [ ] Design Wear OS UI for trip overview
+- [ ] Implement data sync between phone and watch
+- [ ] Add complication providers for watch faces
+- [ ] Create notifications for trip updates on watch
+- [ ] Add quick actions (mark packing item complete, etc.)
+- [ ] Test on Wear OS emulator and device
+- [ ] Optimize battery usage for watch app
+
+---
+
 ## Design System & UI Specifications
 
 - [x] Adopt Material 3 (M3) across platforms with dynamic color (Material You)
@@ -994,7 +1043,7 @@ Deployment details:
   - Step-by-step logic & subtasks:
     1. Map common UI surfaces to schema fields (e.g., trip card needs title, dates, thumbnail, status) and ensure those fields are indexed for fast reads.
   2. Draft schema mapping: mapping UI components to Firestore/BigQuery fields and expected types has been consolidated into `README.md#data-models` (create `docs/schema_mapping.md` only if extensive external docs required).
-    3. Design nullable/optional fields carefully: avoid required fields that cause blocking UX in partial flows (e.g., allow missing cover image and use placeholder).
+  3. Design nullable/optional fields carefully: avoid required fields that cause blocking UX in partial flows (e.g., allow missing cover image and use placeholder).
 
   Acceptance checks:
   - Schema mapping doc exists and core UI flows read required fields without expensive joins; default placeholders are specified.
