@@ -82,6 +82,7 @@ class _AddToTripScreenState extends State<AddToTripScreen> {
             : _newEnd,
         destinations: const <String>[],
         notes: null,
+        ownerId: user.uid,
       );
 
       debugPrint('Creating trip: ${trip.title} for user: ${user.uid}');

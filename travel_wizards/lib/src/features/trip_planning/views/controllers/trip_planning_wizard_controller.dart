@@ -329,7 +329,7 @@ class TripPlanningWizardController extends ChangeNotifier {
   }
 
   /// Create Trip object from current state
-  Trip createTrip() {
+  Trip createTrip({String? userId}) {
     final now = DateTime.now();
     final startDate = _dates?.start ?? now;
     final endDate = _dates?.end ?? now.add(Duration(days: _durationDays ?? 3));
@@ -340,6 +340,10 @@ class TripPlanningWizardController extends ChangeNotifier {
       startDate: startDate,
       endDate: endDate,
       destinations: _destinations,
+      ownerId: userId ?? '',
+      visibility: TripVisibility.private,
+      sharedWith: const [],
+      isPublic: false,
       notes: [
         if (_notes.isNotEmpty) _notes,
         'Party: $_travelParty, Pace: $_pace, Budget: $_budget, Stay: $_stayType',

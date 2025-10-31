@@ -1,5 +1,15 @@
 import 'package:flutter/foundation.dart';
 
+/// Trip visibility modes
+enum TripVisibility {
+  /// Only creator can see
+  private,
+  /// Creator and collaborators can see
+  shared,
+  /// Everyone can see in community explore
+  community,
+}
+
 @immutable
 class Trip {
   final String id;
@@ -8,6 +18,12 @@ class Trip {
   final DateTime endDate;
   final List<String> destinations;
   final String? notes;
+  
+  // Permission fields
+  final String ownerId;
+  final TripVisibility visibility;
+  final List<String> sharedWith;
+  final bool isPublic;
 
   const Trip({
     required this.id,
@@ -16,6 +32,10 @@ class Trip {
     required this.endDate,
     required this.destinations,
     this.notes,
+    required this.ownerId,
+    this.visibility = TripVisibility.private,
+    this.sharedWith = const [],
+    this.isPublic = false,
   });
 
   Trip copyWith({
@@ -25,6 +45,10 @@ class Trip {
     DateTime? endDate,
     List<String>? destinations,
     String? notes,
+    String? ownerId,
+    TripVisibility? visibility,
+    List<String>? sharedWith,
+    bool? isPublic,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -33,6 +57,10 @@ class Trip {
       endDate: endDate ?? this.endDate,
       destinations: destinations ?? this.destinations,
       notes: notes ?? this.notes,
+      ownerId: ownerId ?? this.ownerId,
+      visibility: visibility ?? this.visibility,
+      sharedWith: sharedWith ?? this.sharedWith,
+      isPublic: isPublic ?? this.isPublic,
     );
   }
 
@@ -44,6 +72,10 @@ class Trip {
       'endDate': endDate.toIso8601String(),
       'destinations': destinations,
       'notes': notes,
+      'ownerId': ownerId,
+      'visibility': visibility.name,
+      'sharedWith': sharedWith,
+      'isPublic': isPublic,
     };
   }
 
@@ -55,6 +87,23 @@ class Trip {
       endDate: DateTime.parse(map['endDate'] as String),
       destinations: List<String>.from(map['destinations'] as List<dynamic>),
       notes: map['notes'] as String?,
+      ownerId: map['ownerId'] as String? ?? '',
+      visibility: _parseVisibility(map['visibility']),
+      sharedWith: map['sharedWith'] != null 
+          ? List<String>.from(map['sharedWith'] as List<dynamic>)
+          : const [],
+      isPublic: map['isPublic'] as bool? ?? false,
+    );
+  }
+
+  static TripVisibility _parseVisibility(dynamic value) {
+    if (value == null) return TripVisibility.private;
+    if (value is TripVisibility) return value;
+    
+    final str = value.toString().toLowerCase();
+    return TripVisibility.values.firstWhere(
+      (v) => v.name == str,
+      orElse: () => TripVisibility.private,
     );
   }
 }

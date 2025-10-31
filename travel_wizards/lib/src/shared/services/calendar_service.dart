@@ -123,6 +123,7 @@ class CalendarService {
         endDate: end,
         destinations: const <String>[],
         notes: e.description,
+        ownerId: user?.uid ?? '',
       );
       if (user != null) {
         try {

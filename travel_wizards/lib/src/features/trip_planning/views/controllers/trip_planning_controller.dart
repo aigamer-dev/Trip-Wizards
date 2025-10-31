@@ -482,6 +482,7 @@ class TripPlanningController extends ChangeNotifier {
         endDate: end,
         destinations: _destinations,
         notes: _buildNotesString(),
+        ownerId: '', // Will be set by repository
       );
 
       await TripsRepository.instance.upsertTrip(trip);
@@ -692,6 +693,7 @@ class TripPlanningController extends ChangeNotifier {
         endDate: end,
         destinations: _destinations,
         notes: _buildNotesStringWithItinerary(fullResponse),
+        ownerId: '', // Will be set by repository
       );
 
       await TripsRepository.instance.upsertTrip(trip);
