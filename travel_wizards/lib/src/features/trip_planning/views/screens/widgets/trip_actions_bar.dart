@@ -70,6 +70,37 @@ class TripActionsBar extends StatelessWidget {
                 ),
               ),
               Semantics(
+                label: 'Group chat',
+                button: true,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    context.pushNamed(
+                      'group_chat',
+                      pathParameters: {'tripId': tripId},
+                      queryParameters: {'tripName': data['title'] as String? ?? 'Trip'},
+                    );
+                  },
+                  icon: const Icon(Symbols.chat_rounded),
+                  label: const Text('Chat'),
+                ),
+              ),
+              Semantics(
+                label: 'Trip expenses',
+                button: true,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final buddies = (data['buddies'] as List?)?.cast<String>() ?? <String>[];
+                    context.pushNamed(
+                      'expenses',
+                      pathParameters: {'tripId': tripId},
+                      queryParameters: {'buddies': buddies.join(',')},
+                    );
+                  },
+                  icon: const Icon(Symbols.payments_rounded),
+                  label: const Text('Expenses'),
+                ),
+              ),
+              Semantics(
                 label: 'Collaborate on trip',
                 button: true,
                 child: OutlinedButton.icon(
