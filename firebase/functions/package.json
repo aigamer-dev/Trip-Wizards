@@ -1,0 +1,29 @@
+{
+    "name": "travel-wizards-functions",
+    "description": "Firebase Cloud Functions for Travel Wizards notifications and integrations.",
+    "version": "1.0.0",
+    "main": "lib/index.js",
+    "scripts": {
+        "build": "tsc",
+        "lint": "eslint --config .eslintrc.json src --ext .ts",
+        "serve": "npm run build && firebase emulators:start --only functions",
+        "shell": "npm run build && firebase functions:shell",
+        "start": "npm run shell",
+        "deploy": "npm run build && firebase deploy --only functions",
+        "test": "npm run lint"
+    },
+    "engines": {
+        "node": "20"
+    },
+    "dependencies": {
+        "firebase-admin": "^12.5.0",
+        "firebase-functions": "^5.1.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.14.10",
+        "eslint": "^9.12.0",
+        "eslint-config-google": "^0.14.0",
+        "eslint-plugin-import": "^2.29.1",
+        "typescript": "^5.6.3"
+    }
+}

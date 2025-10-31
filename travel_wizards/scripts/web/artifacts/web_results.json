@@ -1,0 +1,18 @@
+{
+  "url": "http://localhost:5000",
+  "timestamp": "2025-10-29T14:02:20.460Z",
+  "summary": {
+    "total": 1,
+    "pass": 0,
+    "fail": 0,
+    "warn": 0
+  },
+  "results": [
+    {
+      "test": "Web_Exception",
+      "status": "ERROR",
+      "output": "Error: net::ERR_CONNECTION_REFUSED at http://localhost:5000",
+      "timestamp": "2025-10-29T14:02:20.400Z"
+    }
+  ]
+}

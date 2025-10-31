@@ -1,0 +1,70 @@
+[
+    {
+        "name": "event_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Unique identifier for the analytics event."
+    },
+    {
+        "name": "trip_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Trip identifier associated with the event."
+    },
+    {
+        "name": "user_id",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "User identifier that triggered the event."
+    },
+    {
+        "name": "event_type",
+        "type": "STRING",
+        "mode": "REQUIRED",
+        "description": "Canonical event type (e.g., onboarding_completed, plan_generated)."
+    },
+    {
+        "name": "created_at",
+        "type": "DATE",
+        "mode": "REQUIRED",
+        "description": "Trip or event creation date used for table partitioning."
+    },
+    {
+        "name": "event_timestamp",
+        "type": "TIMESTAMP",
+        "mode": "REQUIRED",
+        "description": "Timestamp indicating when the event occurred."
+    },
+    {
+        "name": "app_platform",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "Platform emitting the event (android, web, wear_os)."
+    },
+    {
+        "name": "country_code",
+        "type": "STRING",
+        "mode": "NULLABLE",
+        "description": "ISO 3166-1 alpha-2 country code derived from locale or permissions."
+    },
+    {
+        "name": "metadata",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "description": "Flexible key/value metadata for the event context.",
+        "fields": [
+            {
+                "name": "key",
+                "type": "STRING",
+                "mode": "REQUIRED",
+                "description": "Metadata key name."
+            },
+            {
+                "name": "value",
+                "type": "STRING",
+                "mode": "NULLABLE",
+                "description": "Metadata value as a stringified payload."
+            }
+        ]
+    }
+]

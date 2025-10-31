@@ -3,16 +3,27 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:travel_wizards/src/shared/utils/base_controller.dart';
 
+/// Result of authentication operations
+enum AuthOutcome { success, failed, needsMigration }
+
 /// Authentication controller using the new Provider-based state management
 ///
 /// This controller manages user authentication state and provides methods
 /// for sign in, sign out, and user registration. It replaces the previous
 /// singleton-based approach with a proper Provider pattern.
 class AuthController extends BaseController {
+  static final AuthController _instance = AuthController._internal();
+
+  factory AuthController() => _instance;
+
+  AuthController._internal();
+
+  static AuthController get instance => _instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
   User? _currentUser;
   bool _isEmailVerified = false;
+  AuthCredential? _pendingCredential;
 
   /// Current authenticated user
   User? get currentUser => _currentUser;
@@ -37,6 +48,9 @@ class AuthController extends BaseController {
 
   /// Whether the user is anonymous
   bool get isAnonymous => _currentUser?.isAnonymous ?? false;
+
+  /// Email address associated with pending migration
+  String? get pendingMigrationEmail => _currentUser?.email;
 
   @override
   void init() {
@@ -113,55 +127,93 @@ class AuthController extends BaseController {
   }
 
   /// Sign in with Google (requires additional setup)
-  Future<bool> signInWithGoogle() async {
-    return await handleAsync(() async {
-          if (kIsWeb) {
-            final provider = GoogleAuthProvider();
+  Future<AuthOutcome> signInWithGoogle() async {
+    return await handleAsync(
+      () async {
+        if (kIsWeb) {
+          final provider = GoogleAuthProvider();
+          try {
             final credential = await _firebaseAuth.signInWithPopup(provider);
             _currentUser = credential.user;
-          } else {
-            final googleSignIn = GoogleSignIn();
-            final googleUser = await googleSignIn.signIn();
-
-            if (googleUser == null) {
-              setError('Google sign-in canceled');
-              return false;
+          } on FirebaseAuthException catch (e) {
+            if (e.code == 'account-exists-with-different-credential') {
+              _pendingCredential = e.credential;
+              return AuthOutcome.needsMigration;
             }
+            rethrow;
+          }
+        } else {
+          final googleSignIn = GoogleSignIn();
+          final googleUser = await googleSignIn.signIn();
 
-            final googleAuth = await googleUser.authentication;
-            final credential = GoogleAuthProvider.credential(
-              accessToken: googleAuth.accessToken,
-              idToken: googleAuth.idToken,
-            );
+          if (googleUser == null) {
+            setError('Google sign-in canceled');
+            return AuthOutcome.failed;
+          }
 
+          final googleAuth = await googleUser.authentication;
+          final credential = GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken,
+            idToken: googleAuth.idToken,
+          );
+
+          try {
             final userCredential = await _firebaseAuth.signInWithCredential(
               credential,
             );
             _currentUser = userCredential.user;
+          } on FirebaseAuthException catch (e) {
+            if (e.code == 'account-exists-with-different-credential') {
+              _pendingCredential = credential;
+              return AuthOutcome.needsMigration;
+            }
+            rethrow;
           }
+        }
 
-          if (_currentUser == null) {
-            setError('Unable to sign in with Google');
-            return false;
-          }
+        if (_currentUser == null) {
+          setError('Unable to sign in with Google');
+          return AuthOutcome.failed;
+        }
+
+        _updateEmailVerificationStatus();
+        return AuthOutcome.success;
+      },
+      context: 'Google Sign In',
+    ).then((result) => result ?? AuthOutcome.failed);
+  }
+
+  /// Complete provider migration by linking Google account to existing email/password account
+  Future<bool> completeProviderMigration(String email, String password) async {
+    if (_pendingCredential == null) {
+      setError('No pending migration credential available');
+      return false;
+    }
+
+    return await handleAsync(() async {
+          // First sign in with email/password
+          final emailCredential = await _firebaseAuth
+              .signInWithEmailAndPassword(
+                email: email.trim(),
+                password: password,
+              );
+
+          _currentUser = emailCredential.user;
+
+          // Then link the Google credential
+          await _currentUser!.linkWithCredential(_pendingCredential!);
+
+          // Clear the pending credential
+          _pendingCredential = null;
 
           _updateEmailVerificationStatus();
           return true;
-        }, context: 'Google Sign In') ??
+        }, context: 'Provider Migration') ??
         false;
   }
 
-  /// Sign in anonymously
-  Future<bool> signInAnonymously() async {
-    return await handleAsync(() async {
-          final credential = await _firebaseAuth.signInAnonymously();
-          _currentUser = credential.user;
-          _updateEmailVerificationStatus();
-
-          return _currentUser != null;
-        }, context: 'Anonymous Sign In') ??
-        false;
-  }
+  /// Check if there's a pending migration
+  bool get hasPendingMigration => _pendingCredential != null;
 
   /// Sign out
   Future<bool> signOut() async {

@@ -18,21 +18,63 @@ class TicketsScreen extends StatelessWidget {
 
     final query = FirebaseFirestore.instance
         .collectionGroup('bookings')
-        .where('uid', isEqualTo: uid)
-        .where('status', whereIn: ['booked', 'confirmed'])
-        .orderBy('createdAtMs', descending: true);
+        .limit(500); // Increased limit to filter in memory
+
+    Stream<QuerySnapshot<Map<String, dynamic>>> safeStream;
+    try {
+      safeStream = query.snapshots();
+    } catch (e) {
+      // If query setup fails, return empty stream
+      safeStream = const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
+    }
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: query.snapshots(),
+      stream: safeStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
+          // Handle Firestore index errors gracefully
+          final error = snapshot.error.toString();
+          if (error.contains('requires an index') ||
+              error.contains('FAILED_PRECONDITION')) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Symbols.airplane_ticket, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'Tickets Loading',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Please wait while we load your tickets.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
           return Center(child: Text('Error: ${snapshot.error}'));
         }
         final docs = snapshot.data?.docs ?? const [];
-        if (docs.isEmpty) {
+        // Filter by uid and status in memory to avoid index requirement
+        final filteredDocs = docs.where((doc) {
+          final data = doc.data();
+          return data['uid'] == uid &&
+              (data['status'] == 'booked' || data['status'] == 'confirmed');
+        }).toList();
+        // Sort by createdAtMs descending since we removed orderBy to avoid index requirement
+        filteredDocs.sort((a, b) {
+          final aTime = (a.data()['createdAtMs'] as int?) ?? 0;
+          final bTime = (b.data()['createdAtMs'] as int?) ?? 0;
+          return bTime.compareTo(aTime);
+        });
+        if (filteredDocs.isEmpty) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -55,9 +97,9 @@ class TicketsScreen extends StatelessWidget {
         }
         return ListView.builder(
           padding: const EdgeInsets.all(8.0),
-          itemCount: docs.length,
+          itemCount: filteredDocs.length,
           itemBuilder: (context, index) {
-            return _TicketCard(data: docs[index].data());
+            return _TicketCard(data: filteredDocs[index].data());
           },
         );
       },

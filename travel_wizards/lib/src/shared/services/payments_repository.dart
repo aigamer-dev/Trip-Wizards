@@ -95,9 +95,15 @@ class PaymentsRepository {
     if (uid == null) {
       return const Stream<List<PaymentEntry>>.empty();
     }
-    return _col(uid)
-        .orderBy('createdAtMs', descending: true)
-        .snapshots()
-        .map((s) => s.docs.map((d) => PaymentEntry.fromDoc(d)).toList());
+    return _col(uid).snapshots().map((s) {
+      final docs = s.docs;
+      // Sort by createdAtMs descending since we removed orderBy to avoid index requirement
+      docs.sort((a, b) {
+        final aTime = (a.data()['createdAtMs'] as int?) ?? 0;
+        final bTime = (b.data()['createdAtMs'] as int?) ?? 0;
+        return bTime.compareTo(aTime);
+      });
+      return docs.map((d) => PaymentEntry.fromDoc(d)).toList();
+    });
   }
 }

@@ -520,7 +520,6 @@ class BookingIntegrationService extends ChangeNotifier {
       final bookingQuery = await _firestore
           .collectionGroup('bookings')
           .where('id', isEqualTo: bookingId)
-          .where('userId', isEqualTo: uid)
           .get();
 
       if (bookingQuery.docs.isEmpty) {
@@ -532,6 +531,13 @@ class BookingIntegrationService extends ChangeNotifier {
 
       final bookingDoc = bookingQuery.docs.first;
       final bookingData = bookingDoc.data();
+      // Check if the booking belongs to the user
+      if (bookingData['userId'] != uid) {
+        return BookingModificationResult(
+          success: false,
+          error: 'Booking not found',
+        );
+      }
 
       // Check if modification is allowed
       final status = BookingStatus.values.firstWhere(
@@ -620,7 +626,6 @@ class BookingIntegrationService extends ChangeNotifier {
       final bookingQuery = await _firestore
           .collectionGroup('bookings')
           .where('id', isEqualTo: bookingId)
-          .where('userId', isEqualTo: uid)
           .get();
 
       if (bookingQuery.docs.isEmpty) {
@@ -632,6 +637,13 @@ class BookingIntegrationService extends ChangeNotifier {
 
       final bookingDoc = bookingQuery.docs.first;
       final bookingData = bookingDoc.data();
+      // Check if the booking belongs to the user
+      if (bookingData['userId'] != uid) {
+        return BookingCancellationResult(
+          success: false,
+          error: 'Booking not found',
+        );
+      }
 
       // Request cancellation from vendor
       final cancellationResult = await _requestVendorCancellation(
@@ -727,12 +739,13 @@ class BookingIntegrationService extends ChangeNotifier {
       final bookingQuery = await _firestore
           .collectionGroup('bookings')
           .where('id', isEqualTo: bookingId)
-          .where('userId', isEqualTo: uid)
           .get();
 
       if (bookingQuery.docs.isEmpty) return null;
 
       final bookingData = bookingQuery.docs.first.data();
+      // Check if the booking belongs to the user
+      if (bookingData['userId'] != uid) return null;
       return BookingDetails.fromJson(bookingData);
     } catch (e) {
       if (kDebugMode) {
@@ -752,13 +765,17 @@ class BookingIntegrationService extends ChangeNotifier {
     return _firestore
         .collectionGroup('bookings')
         .where('id', isEqualTo: bookingId)
-        .where('userId', isEqualTo: uid)
         .snapshots()
         .map((snapshot) {
           if (snapshot.docs.isEmpty) {
             throw StateError('Booking not found');
           }
-          return BookingDetails.fromJson(snapshot.docs.first.data());
+          final bookingData = snapshot.docs.first.data();
+          // Check if the booking belongs to the user
+          if (bookingData['userId'] != uid) {
+            throw StateError('Booking not found');
+          }
+          return BookingDetails.fromJson(bookingData);
         });
   }
 
@@ -773,8 +790,7 @@ class BookingIntegrationService extends ChangeNotifier {
 
     Query<Map<String, dynamic>> query = _firestore
         .collectionGroup('bookings')
-        .where('userId', isEqualTo: uid)
-        .orderBy('createdAt', descending: true);
+        .limit(1000); // Increased limit to filter in memory
 
     if (status != null) {
       query = query.where(
@@ -792,9 +808,20 @@ class BookingIntegrationService extends ChangeNotifier {
     }
 
     return query.snapshots().map((snapshot) {
-      return snapshot.docs
+      final allBookings = snapshot.docs
           .map((doc) => BookingDetails.fromJson(doc.data()))
           .toList();
+      // Filter by uid in memory to avoid index requirement
+      final userBookings = allBookings
+          .where((booking) => booking.userId == uid)
+          .toList();
+      // Sort manually since we removed orderBy to avoid index requirement
+      userBookings.sort((a, b) {
+        final aTime = a.createdAt.millisecondsSinceEpoch;
+        final bTime = b.createdAt.millisecondsSinceEpoch;
+        return bTime.compareTo(aTime);
+      });
+      return userBookings;
     });
   }
 

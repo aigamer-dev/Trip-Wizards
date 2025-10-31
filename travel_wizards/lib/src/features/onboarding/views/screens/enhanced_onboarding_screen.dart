@@ -2,12 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:travel_wizards/src/shared/widgets/spacing.dart';
 import 'package:travel_wizards/src/core/l10n/app_localizations.dart';
+import 'package:travel_wizards/src/shared/services/auth_service.dart';
+import 'package:travel_wizards/src/shared/widgets/travel_components/travel_components.dart';
 
 /// Enhanced onboarding screen with travel-focused preferences and skip options
 class EnhancedOnboardingScreen extends StatefulWidget {
-  const EnhancedOnboardingScreen({super.key});
+  /// When true, the screen will skip loading the user profile from Firebase.
+  ///
+  /// This is useful for widget tests that don't initialize Firebase plugins.
+  const EnhancedOnboardingScreen({
+    super.key,
+    this.skipProfileLoad = false,
+    this.initialStep = 0,
+  });
+
+  final bool skipProfileLoad;
+  /// Optional initial step for the onboarding flow. Useful for widget tests.
+  final int initialStep;
 
   @override
   State<EnhancedOnboardingScreen> createState() =>
@@ -21,7 +33,16 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
   late Animation<double> _fadeAnimation;
 
   int _currentStep = 0;
-  final int _totalSteps = 5;
+  final int _totalSteps = 6; // Increased from 5 to 6 for profile step
+
+  // Profile data (Step 2)
+  final _nameController = TextEditingController();
+  final _cityController = TextEditingController();
+  String? _dateOfBirth;
+  String? _gender;
+  String? _state;
+  bool _isGoogleUser = false;
+  bool _isLoadingProfile = false;
 
   // Onboarding data
   String? _travelStyle;
@@ -37,25 +58,206 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+  _pageController = PageController(initialPage: widget.initialStep);
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
       vsync: this,
+      duration: const Duration(milliseconds: 800),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
+    // Initialize current step from widget (testability)
+    _currentStep = widget.initialStep;
+
+    // Start animation
     _animationController.forward();
+    if (!widget.skipProfileLoad) {
+      _loadUserProfile();
+    }
+
+    // Add listener to name controller to trigger validation
+    _nameController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _cityController.dispose();
     _pageController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
+  Future<void> _loadUserProfile() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      setState(() {
+        _isLoadingProfile = true;
+      });
+
+      // Check if user signed in with Google
+      final isGoogle = user.providerData.any(
+        (info) => info.providerId == 'google.com',
+      );
+      _isGoogleUser = isGoogle;
+
+      // Pre-fill name from Firebase user
+      if (user.displayName != null && user.displayName!.isNotEmpty) {
+        _nameController.text = user.displayName!;
+      }
+
+      // If Google user, try to fetch additional profile data from People API
+      if (isGoogle) {
+        final profileData = await AuthService.instance.fetchPeopleProfile();
+        if (profileData != null && mounted) {
+          // Update name if available and not already set
+          if (profileData['name'] != null && _nameController.text.isEmpty) {
+            _nameController.text = profileData['name'] as String;
+          }
+
+          // Set gender
+          if (profileData['gender'] != null) {
+            final gender = profileData['gender'] as String;
+            _gender = gender == 'male'
+                ? 'Male'
+                : (gender == 'female' ? 'Female' : 'Other');
+          }
+
+          // Set date of birth
+          if (profileData['dob'] != null) {
+            final dob = profileData['dob'] as Map<String, dynamic>;
+            final year = dob['year'] as int?;
+            final month = dob['month'] as int?;
+            final day = dob['day'] as int?;
+            if (year != null && month != null && day != null) {
+              _dateOfBirth =
+                  '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading user profile: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingProfile = false;
+        });
+      }
+    }
+  }
+
+  // Validation methods for each step
+  bool _isStepValid() {
+    switch (_currentStep) {
+      case 0: // Welcome step
+        return true; // Always valid
+      case 1: // Profile step
+        return _isProfileStepValid();
+      case 2: // Travel style step
+        return _travelStyle != null && _travelStyle!.isNotEmpty;
+      case 3: // Interests step
+        return _interests.isNotEmpty;
+      case 4: // Preferences step
+        return _budgetRange != null && _accommodationType != null;
+      case 5: // Final/Review step
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  bool _isProfileStepValid() {
+    // Name is required and must be at least 2 characters
+    if (_nameController.text.trim().isEmpty ||
+        _nameController.text.trim().length < 2) {
+      return false;
+    }
+    // Date of birth is required
+    if (_dateOfBirth == null || _dateOfBirth!.isEmpty) {
+      return false;
+    }
+    // Gender is required
+    if (_gender == null || _gender!.isEmpty) {
+      return false;
+    }
+    // State is required
+    if (_state == null || _state!.isEmpty) {
+      return false;
+    }
+    // City is optional but if provided must be at least 2 characters
+    if (_cityController.text.isNotEmpty &&
+        _cityController.text.trim().length < 2) {
+      return false;
+    }
+    return true;
+  }
+
+  String? _getValidationMessage() {
+    switch (_currentStep) {
+      case 1: // Profile step
+        if (_nameController.text.trim().isEmpty) {
+          return 'Please enter your name';
+        }
+        if (_nameController.text.trim().length < 2) {
+          return 'Name must be at least 2 characters';
+        }
+        if (_dateOfBirth == null || _dateOfBirth!.isEmpty) {
+          return 'Please select your date of birth';
+        }
+        if (_gender == null || _gender!.isEmpty) {
+          return 'Please select your gender';
+        }
+        if (_state == null || _state!.isEmpty) {
+          return 'Please select your state';
+        }
+        if (_cityController.text.isNotEmpty &&
+            _cityController.text.trim().length < 2) {
+          return 'City must be at least 2 characters';
+        }
+        return null;
+      case 2: // Travel style
+        if (_travelStyle == null || _travelStyle!.isEmpty) {
+          return 'Please select your travel style';
+        }
+        return null;
+      case 3: // Interests
+        if (_interests.isEmpty) {
+          return 'Please select at least one interest';
+        }
+        return null;
+      case 4: // Preferences
+        if (_budgetRange == null) {
+          return 'Please select your budget range';
+        }
+        if (_accommodationType == null) {
+          return 'Please select your accommodation preference';
+        }
+        return null;
+      default:
+        return null;
+    }
+  }
+
   void _nextStep() {
+    // Validate before proceeding
+    if (!_isStepValid()) {
+      final message = _getValidationMessage();
+      if (message != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+      return;
+    }
+
     if (_currentStep < _totalSteps - 1) {
       setState(() {
         _currentStep++;
@@ -113,26 +315,65 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
 
   Future<void> _savePreferences() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
 
+    // Validate required profile fields
+    if (_nameController.text.trim().isEmpty) {
+      throw Exception('Name is required');
+    }
+    if (_dateOfBirth == null || _dateOfBirth!.isEmpty) {
+      throw Exception('Date of birth is required');
+    }
+    if (_gender == null || _gender!.isEmpty) {
+      throw Exception('Gender is required');
+    }
+    if (_state == null || _state!.isEmpty) {
+      throw Exception('State is required');
+    }
+
+    // Prepare profile data with validation
+    final profileData = {
+      'name': _nameController.text.trim(),
+      'dateOfBirth': _dateOfBirth!,
+      'gender': _gender!,
+      'state': _state!,
+      if (_cityController.text.trim().isNotEmpty)
+        'city': _cityController.text.trim(),
+      'profileCompletedAt': FieldValue.serverTimestamp(),
+      'isGoogleUser': _isGoogleUser,
+    };
+
+    // Prepare onboarding preferences
     final preferences = {
-      'travelStyle': _travelStyle,
+      if (_travelStyle != null) 'travelStyle': _travelStyle,
       'interests': _interests.toList(),
-      'budgetRange': _budgetRange,
-      'accommodationType': _accommodationType,
+      if (_budgetRange != null) 'budgetRange': _budgetRange,
+      if (_accommodationType != null) 'accommodationType': _accommodationType,
       'needsVisaAssistance': _needsVisaAssistance,
       'wantsInsurance': _wantsInsurance,
       'travelFrequency': _travelFrequency,
       'isExperiencedTraveler': _isExperiencedTraveler,
       'onboardingCompleted': true,
       'onboardingCompletedAt': FieldValue.serverTimestamp(),
+      'onboardingVersion': '1.0', // Version for future migrations
     };
 
-    // Save to Firestore
+    // Save to Firestore with proper structure
+    debugPrint('Saving profile data: $profileData');
     debugPrint('Saving onboarding preferences: $preferences');
+
     await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      // Profile data at root level
+      ...profileData,
+      // Onboarding preferences in nested object
       'onboardingData': preferences,
+      // Metadata
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    debugPrint('Successfully saved user data to Firestore');
   }
 
   @override
@@ -174,6 +415,7 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
                 },
                 children: [
                   _buildWelcomeStep(theme, t),
+                  _buildProfileStep(theme, t),
                   _buildTravelStyleStep(theme, t),
                   _buildInterestsStep(theme, t),
                   _buildPreferencesStep(theme, t),
@@ -215,79 +457,298 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
   }
 
   Widget _buildWelcomeStep(ThemeData theme, AppLocalizations t) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Padding(
-        padding: Insets.allLg,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.flight_takeoff,
-              size: 80,
+    return SingleChildScrollView(
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Padding(
+          padding: Insets.allLg,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight:
+                  MediaQuery.of(context).size.height *
+                  0.6, // Ensure minimum height
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.flight_takeoff,
+                  size: 80,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  t.welcomeToTravelWizards,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  t.personalizeExperience,
+                  style: theme.textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(t.aiPoweredTripPlanning)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(t.personalizedRecommendations)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(t.collaborativeTripPlanning)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileStep(ThemeData theme, AppLocalizations t) {
+    final indianStates = [
+      'Andhra Pradesh',
+      'Arunachal Pradesh',
+      'Assam',
+      'Bihar',
+      'Chhattisgarh',
+      'Goa',
+      'Gujarat',
+      'Haryana',
+      'Himachal Pradesh',
+      'Jharkhand',
+      'Karnataka',
+      'Kerala',
+      'Madhya Pradesh',
+      'Maharashtra',
+      'Manipur',
+      'Meghalaya',
+      'Mizoram',
+      'Nagaland',
+      'Odisha',
+      'Punjab',
+      'Rajasthan',
+      'Sikkim',
+      'Tamil Nadu',
+      'Telangana',
+      'Tripura',
+      'Uttar Pradesh',
+      'Uttarakhand',
+      'West Bengal',
+    ];
+
+    return SingleChildScrollView(
+      padding: Insets.allLg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Your Profile',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
             ),
-            const SizedBox(height: 24),
-            Text(
-              t.welcomeToTravelWizards,
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              t.personalizeExperience,
-              style: theme.textTheme.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
+          ),
+          const SizedBox(height: 8),
+          if (_isGoogleUser)
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(t.aiPoweredTripPlanning)),
-                    ],
+                  Icon(
+                    Icons.info_outline,
+                    color: theme.colorScheme.onPrimaryContainer,
+                    size: 20,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        color: theme.colorScheme.primary,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Profile data fetched from your Google account',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onPrimaryContainer,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(t.personalizedRecommendations)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(t.collaborativeTripPlanning)),
-                    ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          const SizedBox(height: 24),
+
+          // Name field
+          TravelTextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              labelText: 'Full Name',
+              prefixIcon: const Icon(Icons.person),
+            ),
+            enabled: !_isLoadingProfile,
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 16),
+
+          // Date of Birth
+          Semantics(
+            label: 'Date of birth selector',
+            hint: 'Double tap to open date picker and select your birth date',
+            button: true,
+            child: InkWell(
+              onTap: _isLoadingProfile
+                  ? null
+                  : () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _dateOfBirth != null
+                            ? DateTime.parse(_dateOfBirth!)
+                            : DateTime.now().subtract(
+                                const Duration(days: 365 * 25),
+                              ),
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _dateOfBirth = picked.toIso8601String().split('T')[0];
+                        });
+                      }
+                    },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Date of Birth',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.cake),
+                  enabled: !_isLoadingProfile,
+                ),
+                child: Text(
+                  _dateOfBirth ?? 'Select date',
+                  style: _dateOfBirth == null
+                      ? theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurface.withAlpha(
+                            (0.5 * 255).toInt(),
+                          ),
+                        )
+                      : theme.textTheme.bodyLarge,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Gender
+          DropdownButtonFormField<String>(
+            initialValue: _gender,
+            decoration: const InputDecoration(
+              labelText: 'Gender',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            items: ['Male', 'Female', 'Other', 'Prefer not to say']
+                .map(
+                  (gender) =>
+                      DropdownMenuItem(value: gender, child: Text(gender)),
+                )
+                .toList(),
+            onChanged: _isLoadingProfile
+                ? null
+                : (value) {
+                    setState(() {
+                      _gender = value;
+                    });
+                  },
+          ),
+          const SizedBox(height: 16),
+
+          // State
+          DropdownButtonFormField<String>(
+            initialValue: _state,
+            decoration: const InputDecoration(
+              labelText: 'State',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.location_on),
+            ),
+            items: indianStates
+                .map(
+                  (state) => DropdownMenuItem(value: state, child: Text(state)),
+                )
+                .toList(),
+            onChanged: _isLoadingProfile
+                ? null
+                : (value) {
+                    setState(() {
+                      _state = value;
+                      _cityController.clear(); // Reset city when state changes
+                    });
+                  },
+          ),
+          const SizedBox(height: 16),
+
+          // City
+          TravelTextField(
+            controller: _cityController,
+            decoration: InputDecoration(
+              labelText: 'City',
+              prefixIcon: const Icon(Icons.location_city),
+            ),
+            enabled: !_isLoadingProfile,
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 16),
+
+          if (_isLoadingProfile)
+            Center(
+              child: Column(
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Loading your profile...',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -661,7 +1122,7 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
         children: [
           if (_currentStep > 0)
             Expanded(
-              child: OutlinedButton(
+              child: SecondaryButton(
                 onPressed: _previousStep,
                 child: const Text('Back'),
               ),
@@ -669,10 +1130,12 @@ class _EnhancedOnboardingScreenState extends State<EnhancedOnboardingScreen>
           if (_currentStep > 0) const SizedBox(width: 16),
           Expanded(
             flex: _currentStep == 0 ? 1 : 1,
-            child: ElevatedButton(
-              onPressed: _currentStep == _totalSteps - 1
-                  ? _completeOnboarding
-                  : _nextStep,
+            child: PrimaryButton(
+              onPressed: _isStepValid()
+                  ? (_currentStep == _totalSteps - 1
+                        ? _completeOnboarding
+                        : _nextStep)
+                  : null, // Disabled when step is invalid
               child: Text(
                 _currentStep == _totalSteps - 1 ? 'Get Started!' : 'Next',
               ),

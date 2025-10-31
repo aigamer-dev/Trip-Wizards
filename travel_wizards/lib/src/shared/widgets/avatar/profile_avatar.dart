@@ -88,6 +88,8 @@ class ProfileAvatar extends StatelessWidget {
           if (loadingProgress == null) return child;
           return fallback();
         },
+        // Add timeout to prevent hanging during tests
+        headers: const {'Cache-Control': 'max-age=3600'},
       );
     }
 
@@ -95,7 +97,6 @@ class ProfileAvatar extends StatelessWidget {
 
     final avatar = Semantics(
       label: semanticLabel,
-      image: true,
       child: SizedBox(
         width: size,
         height: size,

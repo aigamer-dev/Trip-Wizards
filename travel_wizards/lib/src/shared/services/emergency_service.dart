@@ -95,6 +95,21 @@ class EmergencyService {
 
   /// Request necessary permissions for emergency services
   Future<bool> _requestPermissions() async {
+    debugPrint('');
+    debugPrint(
+      '╔════════════════════════════════════════════════════════════╗',
+    );
+    debugPrint(
+      '║  ⚠️  USER ACTION MAY BE REQUIRED  ⚠️                       ║',
+    );
+    debugPrint(
+      '║  Please grant location/contacts permissions when prompted  ║',
+    );
+    debugPrint(
+      '╚════════════════════════════════════════════════════════════╝',
+    );
+    debugPrint('');
+
     var granted = false;
     try {
       // Request location permission (high accuracy for emergencies)

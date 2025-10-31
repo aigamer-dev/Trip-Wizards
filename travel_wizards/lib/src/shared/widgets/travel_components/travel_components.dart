@@ -16,6 +16,15 @@ export 'trip_card.dart';
 export 'travel_chips.dart';
 export 'weather_widget.dart';
 export 'activity_timeline.dart';
+export 'primary_button.dart';
+export 'secondary_button.dart';
+export 'travel_text_field.dart';
+export 'travel_card.dart';
+export 'travel_avatar.dart';
+export 'components_demo.dart';
+export 'migration_dialog.dart';
+export 'undo_migration_dialog.dart';
+export 'home_trip_card.dart';
 
 // Re-export commonly used design system elements
 export 'package:travel_wizards/src/core/app/travel_colors.dart';

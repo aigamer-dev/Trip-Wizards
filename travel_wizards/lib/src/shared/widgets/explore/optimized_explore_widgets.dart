@@ -522,16 +522,20 @@ class _OptimizedIdeaCardState extends State<_OptimizedIdeaCard> {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                 child: Row(
                   children: [
-                    _buildInfoPill(
-                      context,
-                      icon: Icons.timelapse,
-                      label: '${widget.idea.durationDays}-day plan',
+                    Flexible(
+                      child: _buildInfoPill(
+                        context,
+                        icon: Icons.timelapse,
+                        label: '${widget.idea.durationDays}-day plan',
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    _buildInfoPill(
-                      context,
-                      icon: Icons.account_balance_wallet,
-                      label: _budgetLabel(widget.idea.budget),
+                    Flexible(
+                      child: _buildInfoPill(
+                        context,
+                        icon: Icons.account_balance_wallet,
+                        label: _budgetLabel(widget.idea.budget),
+                      ),
                     ),
                     const Spacer(),
                     Semantics(

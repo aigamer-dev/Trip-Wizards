@@ -43,7 +43,7 @@ git checkout -b feature/chat-ui
 * Keep commits **small, logical, and descriptive**.
 * Follow the **commit message guidelines**:
 
-```
+```md
 <type>(scope): short description
 ```
 
@@ -115,7 +115,7 @@ git push origin --delete feature/<your-feature-name>  # delete remote branch
 
 ## ✅ Summary Workflow
 
-```
+```md
 develop ← feature/<task> → PR → code review → merge → develop
 main ← release from develop
 ```

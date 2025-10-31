@@ -1,0 +1,78 @@
+{
+  "url": "http://localhost:8080",
+  "timestamp": "2025-10-29T12:52:38.511Z",
+  "summary": {
+    "total": 11,
+    "pass": 4,
+    "fail": 5,
+    "warn": 2
+  },
+  "results": [
+    {
+      "test": "Web_PageLoad",
+      "status": "PASS",
+      "output": "Loaded http://localhost:8080",
+      "timestamp": "2025-10-29T12:52:09.978Z"
+    },
+    {
+      "test": "Web_Title",
+      "status": "PASS",
+      "output": "Title: Travel Wizards",
+      "timestamp": "2025-10-29T12:52:09.982Z"
+    },
+    {
+      "test": "Web_GoogleSignIn_ButtonPresent",
+      "status": "FAIL",
+      "output": "Google Sign-In button not found",
+      "timestamp": "2025-10-29T12:52:11.998Z"
+    },
+    {
+      "test": "Web_Navigation_Present",
+      "status": "FAIL",
+      "output": "No navigation found",
+      "timestamp": "2025-10-29T12:52:11.999Z"
+    },
+    {
+      "test": "Web_Security_HTTPS",
+      "status": "PASS",
+      "output": "Protocol: http (localhost HTTP accepted)",
+      "timestamp": "2025-10-29T12:52:11.999Z"
+    },
+    {
+      "test": "Web_Security_CSP",
+      "status": "WARN",
+      "output": "No CSP header (consider adding)",
+      "timestamp": "2025-10-29T12:52:12.000Z"
+    },
+    {
+      "test": "Web_ConsoleErrors",
+      "status": "PASS",
+      "output": "No errors",
+      "timestamp": "2025-10-29T12:52:14.001Z"
+    },
+    {
+      "test": "Web_Responsive_Mobile",
+      "status": "FAIL",
+      "output": "Rendered at 375x667",
+      "timestamp": "2025-10-29T12:52:20.142Z"
+    },
+    {
+      "test": "Web_Responsive_Tablet",
+      "status": "FAIL",
+      "output": "Rendered at 768x1024",
+      "timestamp": "2025-10-29T12:52:26.617Z"
+    },
+    {
+      "test": "Web_Responsive_Desktop",
+      "status": "FAIL",
+      "output": "Rendered at 1920x1080",
+      "timestamp": "2025-10-29T12:52:33.022Z"
+    },
+    {
+      "test": "Web_CreateTripUI",
+      "status": "WARN",
+      "output": "Create button not visible (may require auth)",
+      "timestamp": "2025-10-29T12:52:38.384Z"
+    }
+  ]
+}

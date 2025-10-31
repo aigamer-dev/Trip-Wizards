@@ -128,6 +128,21 @@ class NotificationService {
 
   /// Request notification permissions
   Future<bool> _requestPermissions() async {
+    debugPrint('');
+    debugPrint(
+      '╔════════════════════════════════════════════════════════════╗',
+    );
+    debugPrint(
+      '║  ⚠️  USER ACTION MAY BE REQUIRED  ⚠️                       ║',
+    );
+    debugPrint(
+      '║  Please grant notification permissions when prompted       ║',
+    );
+    debugPrint(
+      '╚════════════════════════════════════════════════════════════╝',
+    );
+    debugPrint('');
+
     final settings = await _messaging.requestPermission(
       alert: true,
       announcement: false,

@@ -2,6 +2,8 @@
 
 A comprehensive Flutter application for AI-powered travel planning with real-time collaboration, offline support, emergency assistance, and advanced trip management features.
 
+While AI assists throughout the experience, the core of Travel Wizards stays focused on dependable trip orchestration, with the assistant acting as an enhancer rather than the main interface.
+
 ## 🌟 Features
 
 ### Core Travel Planning
@@ -21,6 +23,14 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 - **Payment Integration**: Stripe and Google Pay support
 - **Performance Optimization**: Advanced caching and performance monitoring
 - **Material 3 Design**: Modern UI with comprehensive theming
+
+### Wear OS Companion Experience
+
+- **Itinerary Glance Tile**: Lightweight tile surfaces the next upcoming trip segment, gate info, and countdown at a glance.
+- **Actionable Notifications**: Mirrored push notifications provide quick actions for check-in, share ETA, or acknowledge alerts directly from the watch.
+- **Trip Progress Peek**: Swipeable card lists current day agenda and travel checklist items optimized for the circular UI.
+- **Offline Snapshot**: Automatically syncs the next 24 hours of itinerary details when the watch reconnects, keeping essentials available without the phone.
+- **Implementation Plan**: Deliver as a dedicated Flutter module (`wear_companion/`) that shares core services via a federated package while keeping the phone app as the primary hub.
 
 ## 🚀 Quick Start
 
@@ -60,9 +70,111 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 
 6. **Run the app**
 
-   ```bash
-   flutter run
-   ```
+  ```bash
+  flutter run
+  ```
+
+## 📦 Deployment
+
+This section contains the minimal steps and artifact locations to publish or test the Travel Wizards app (web + Android). It intentionally contains no secrets — store keys in CI secrets or local `.env` files as described below.
+
+### Artifacts (already produced)
+
+- Web release bundle: `travel_wizards/build/web`
+- Android debug APK: `travel_wizards/build/app/outputs/flutter-apk/app-debug.apk`
+
+If you need a release APK / AAB, run the production build steps described below.
+
+### Quick local checks
+
+#### Serve web artifact locally
+
+```bash
+# from repo root
+python3 -m http.server 8080 -d travel_wizards/build/web
+# then open http://localhost:8080
+```
+
+#### Install Android debug APK on device/emulator
+
+```bash
+# from repo root
+adb install -r travel_wizards/build/app/outputs/flutter-apk/app-debug.apk
+```
+
+#### Run app in debug mode
+
+```bash
+cd travel_wizards
+flutter run
+```
+
+### Production Android (AAB) build
+
+1. Ensure keystore and signing config available locally or in CI. Add keystore to `android/app` or configure CI secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEYSTORE_ALIAS`, `ANDROID_KEYSTORE_ALIAS_PASSWORD`).
+2. Build AAB:
+
+  ```bash
+  cd travel_wizards
+  flutter build appbundle --release -t lib/main.dart
+  ```
+
+1. Upload AAB to Google Play Console (internal testing first). Fill Play Store listing, upload screenshots and privacy policy URL.
+
+### Production Web deployment (Firebase Hosting)
+
+1. Install Firebase CLI and log in:
+
+```bash
+npm install -g firebase-tools
+firebase login
+```
+
+2. Deploy to preview channel or production:
+
+  ```bash
+  cd travel_wizards
+  # preview channel
+  firebase hosting:channel:deploy preview --only hosting
+  # or production
+  firebase deploy --only hosting
+  ```
+
+> Note: keep `firebase.json` and hosting config updated. For first-time deploy, run `firebase init hosting` and follow prompts.
+
+### CI secrets (add these to GitHub Actions repository secrets)
+
+- FIREBASE_TOKEN — token for `firebase deploy` (or set up GH Firebase action with service account)
+- ANDROID_KEYSTORE_BASE64 — base64-encoded keystore for signing releases (or use Google Play App Signing)
+- ANDROID_KEYSTORE_PASSWORD
+- ANDROID_KEY_ALIAS
+- ANDROID_KEY_ALIAS_PASSWORD
+- BACKEND_BASE_URL — URL for backend (if any) used by the app in CI builds
+
+Do NOT commit any secrets or service account keys to source control.
+
+### Tests and verification
+
+- Run unit & widget tests locally:
+
+```bash
+cd travel_wizards
+flutter test
+```
+
+- Run static analysis:
+
+```bash
+flutter analyze
+```
+
+- Golden tests: ensure the `test/goldens/` baselines are present and updated only intentionally. CI will run golden comparisons.
+
+### Notes & troubleshooting
+
+- Web build warnings about WASM compatibility for some JS-interop packages are informational; they don't block normal web deployment to modern browsers.
+- If Firebase Hosting deploy fails due to missing config, double-check `travel_wizards/lib/firebase_options.dart` and `travel_wizards/web/index.html` placeholders.
+- For Play Console privacy & sensitive scope verification (People API), ensure your OAuth consent screen is configured before requesting sensitive scopes in production.
 
 ## 🔧 Configuration
 
@@ -139,6 +251,81 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
      # In travel_wizards/web/index.html, replace YOUR_GOOGLE_MAPS_API_KEY
      ```
 
+### Places Autocomplete — Manual Test Checklist
+
+Use this checklist to manually verify the Places Autocomplete feature on emulator or physical device. Do not commit API keys to source control.
+
+1. Create a Google Cloud API key
+
+- In Google Cloud Console, enable the following APIs:
+  - Places API
+  - Maps JavaScript API (for web)
+  - Maps SDK for Android (if using Android)
+- Create an API key and restrict it to the required APIs.
+
+2. Restrict the API key for safety
+
+- For Android: Restrict by package name and SHA-1 (recommended for production).
+- For Web: Restrict by HTTP referrers (your hosting domain or `localhost` for dev).
+- Keep a separate unrestricted dev key only if absolutely necessary and never commit it.
+
+3. Provide the key to the app for local testing
+
+- Preferred (safe): use `--dart-define` at build/run time:
+
+    ```bash
+    # Web (dev):
+    flutter run -d chrome --dart-define=PLACES_API_KEY=YOUR_KEY
+
+    # Android (debug):
+    flutter run -d emulator-5554 --dart-define=PLACES_API_KEY=YOUR_KEY
+
+    # Build web release with key:
+    flutter build web --dart-define=PLACES_API_KEY=YOUR_KEY
+    ```
+
+- Or set environment variables and load them in `lib/main.dart` (local dev only).
+- Do NOT commit keys into source files.
+
+4. Android manifest (optional local debug)
+
+- For native plugins that read `strings.xml`, you can add the key to `android/app/src/main/res/values/strings.xml` in your local copy (do not commit) and reference it in the manifest.
+
+5. Test on emulator/device
+
+- Launch the app and open a screen with the Places Autocomplete input.
+- Type a place name (e.g., "Mumbai" or "MG Road") and confirm suggestions appear.
+- Tap a suggestion — verify the returned place has useful fields (place_id, name, lat/lng, formatted address).
+- Verify the app gracefully handles:
+  - No network (shows an inline message)
+  - API quota exceeded / invalid key (user-facing error and a log entry)
+  - Permission denied (location-based suggestions require location permission — handle gracefully)
+
+6. Web checks
+
+- If testing web, ensure Maps JS is loaded with the same key and the referrer restriction allows localhost or your test domain.
+- Test CORS and ensure JS console has no API key errors.
+
+7. Verification steps
+
+- Verify that suggestions match expected region biasing (if configured).
+- Confirm lat/lng accuracy by opening the place marker on the map view (if present).
+- Confirm autocomplete latency is acceptable (<300ms median on local network) and that debouncing is applied while typing.
+
+8. Security & compliance notes
+
+- For production, restrict keys by platform and rotate keys if you suspect compromise.
+- For People API or additional sensitive scopes, ensure OAuth consent verification is completed before requesting scopes at scale.
+
+9. Troubleshooting
+
+- Common errors: `API key not authorized`, `RefererNotAllowedMapError`, `REQUEST_DENIED` — check key restrictions and enabled APIs.
+- If the emulator can't reach Google APIs, test with a physical device on the same network or check emulator network settings.
+
+---
+
+This checklist is intentionally conservative for the hackathon—prefer sandboxing and mocked services for automated tests; run manual checks with real keys on a private dev environment only.
+
 2. **Google Translate API**
 
    - Enable Cloud Translation API in Google Cloud Console
@@ -148,6 +335,24 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
      ```env
      GOOGLE_TRANSLATE_API_KEY=your-translate-api-key
      ```
+
+### BigQuery Setup
+
+The app streams analytics and trip-feedback events into a time-partitioned BigQuery table. Provision the dataset and service account with the included automation script (requires the Google Cloud SDK):
+
+```bash
+cd travel_wizards/scripts/data
+./setup_bigquery.sh -p <your-gcp-project> --key-output ~/.config/travel_wizards/bq-writer.json
+```
+
+The script performs the following:
+
+- Creates (or reuses) the `travel_wizards` dataset in the chosen region (`us-central1` by default).
+- Provisions a partitioned `trip_events` table using `created_at` as the partition key with schema defined in `scripts/data/schemas/trip_events_schema.json`.
+- Creates a dedicated service account (`travel-wizards-bq-writer`) with `roles/bigquery.dataEditor` and `roles/bigquery.jobUser` permissions.
+- Optionally generates a JSON key (store securely outside of version control; the example above writes to `~/.config/travel_wizards/bq-writer.json`).
+
+After generating a key, expose it to the app via environment configuration (for example `BIGQUERY_SERVICE_ACCOUNT_KEY_PATH`) so the backend ingestion layer can authenticate when writing analytics batches.
 
 ### Payment Setup (Stripe)
 

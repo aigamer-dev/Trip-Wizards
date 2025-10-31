@@ -7,6 +7,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Avoid importing dart:io on web; use foundation platform checks instead.
 import 'src/core/app/app.dart';
 import 'src/core/app/theme.dart';
+import 'src/ui/design_tokens.dart';
 import 'src/core/app/settings_controller.dart';
 import 'src/core/config/env.dart';
 import 'src/shared/services/backend_service.dart';
@@ -17,6 +18,7 @@ import 'src/core/architecture/travel_wizards_service_registry.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'src/shared/services/settings_repository.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'src/shared/services/local_sync_repository.dart';
@@ -121,6 +123,29 @@ Future<void> main() async {
     context: 'Firebase Initialization',
     showUserError: false,
   );
+
+  // Connect to Firebase emulators if enabled (for integration tests)
+  const bool useEmulators = bool.fromEnvironment(
+    'USE_FIREBASE_EMULATORS',
+    defaultValue: false,
+  );
+  if (useEmulators) {
+    const String emulatorHost = String.fromEnvironment(
+      'FIREBASE_EMULATOR_HOST',
+      defaultValue: '10.0.2.2',
+    );
+    await ErrorHandlingService.instance.handleAsync(
+      () async {
+        FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9099);
+        FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, 9098);
+        debugPrint(
+          '✅ Connected to Firebase emulators at $emulatorHost (Auth:9099, Firestore:9098)',
+        );
+      },
+      context: 'Firebase Emulator Connection',
+      showUserError: false,
+    );
+  }
 
   // Web: Ensure auth persistence and finalize any pending redirect sign-in
   if (kIsWeb) {
@@ -284,8 +309,10 @@ class TravelWizardsBootstrap extends StatelessWidget {
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
-        final light = lightDynamic ?? kFallbackLightScheme;
-        final dark = darkDynamic ?? kFallbackDarkScheme;
+        final lightScheme = lightDynamic ?? DesignTokens.fallbackLightScheme;
+        final darkScheme = darkDynamic ?? DesignTokens.fallbackDarkScheme;
+        final lightTheme = AppTheme.light.copyWith(colorScheme: lightScheme);
+        final darkTheme = AppTheme.dark.copyWith(colorScheme: darkScheme);
         return MultiProvider(
           providers: [
             ChangeNotifierProvider<AppSettings>.value(
@@ -298,10 +325,16 @@ class TravelWizardsBootstrap extends StatelessWidget {
             ChangeNotifierProvider<OnboardingState>.value(
               value: OnboardingState.instance,
             ),
+            ChangeNotifierProvider<ThemeProvider>(
+              create: (_) => ThemeProvider(),
+            ),
           ],
           child: PerformanceOptimizedApp(
             criticalAssets: const [],
-            child: TravelWizardsApp(lightScheme: light, darkScheme: dark),
+            child: TravelWizardsApp(
+              lightTheme: lightTheme,
+              darkTheme: darkTheme,
+            ),
           ),
         );
       },

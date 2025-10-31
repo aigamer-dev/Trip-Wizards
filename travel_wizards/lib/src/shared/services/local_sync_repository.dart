@@ -27,10 +27,14 @@ class LocalSyncRepository {
   // Calendar
   Future<void> saveCalendarSync({required int count}) async {
     await _box.put(_key('calendar_last_count'), count);
-    await _box.put(_key('calendar_last_time'), DateTime.now().toIso8601String());
+    await _box.put(
+      _key('calendar_last_time'),
+      DateTime.now().toIso8601String(),
+    );
   }
 
-  int get calendarLastCount => (_box.get(_key('calendar_last_count')) as int?) ?? 0;
+  int get calendarLastCount =>
+      (_box.get(_key('calendar_last_count')) as int?) ?? 0;
   DateTime? get calendarLastTime {
     final s = _box.get(_key('calendar_last_time')) as String?;
     return s == null ? null : DateTime.tryParse(s);
@@ -39,10 +43,14 @@ class LocalSyncRepository {
   // Contacts
   Future<void> saveContactsSync({required int count}) async {
     await _box.put(_key('contacts_last_count'), count);
-    await _box.put(_key('contacts_last_time'), DateTime.now().toIso8601String());
+    await _box.put(
+      _key('contacts_last_time'),
+      DateTime.now().toIso8601String(),
+    );
   }
 
-  int get contactsLastCount => (_box.get(_key('contacts_last_count')) as int?) ?? 0;
+  int get contactsLastCount =>
+      (_box.get(_key('contacts_last_count')) as int?) ?? 0;
   DateTime? get contactsLastTime {
     final s = _box.get(_key('contacts_last_time')) as String?;
     return s == null ? null : DateTime.tryParse(s);

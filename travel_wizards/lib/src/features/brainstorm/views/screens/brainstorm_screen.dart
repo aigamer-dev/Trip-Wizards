@@ -118,14 +118,17 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
                         Flexible(flex: 7, child: _buildChatCard(context)),
                       ],
                     )
-                  : Column(
-                      children: [
-                        _buildIdeaHero(context),
-                        const SizedBox(height: 16),
-                        _buildSuggestionCard(context),
-                        const SizedBox(height: 16),
-                        Expanded(child: _buildChatCard(context)),
-                      ],
+                  : SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildIdeaHero(context),
+                          const SizedBox(height: 16),
+                          _buildSuggestionCard(context),
+                          const SizedBox(height: 16),
+                          SizedBox(height: 600, child: _buildChatCard(context)),
+                        ],
+                      ),
                     ),
             ),
           ),
@@ -164,7 +167,9 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: scheme.onPrimaryContainer.withAlpha((0.1 * 255).toInt()),
+                  backgroundColor: scheme.onPrimaryContainer.withAlpha(
+                    (0.1 * 255).toInt(),
+                  ),
                   child: Icon(
                     Icons.auto_awesome_rounded,
                     size: 32,
@@ -183,7 +188,9 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
                 Text(
                   'Describe the vibe or constraints and let Travel Wizards co-create an itinerary in seconds.',
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: scheme.onPrimaryContainer.withAlpha((0.8 * 255).toInt()),
+                    color: scheme.onPrimaryContainer.withAlpha(
+                      (0.8 * 255).toInt(),
+                    ),
                   ),
                 ),
               ],

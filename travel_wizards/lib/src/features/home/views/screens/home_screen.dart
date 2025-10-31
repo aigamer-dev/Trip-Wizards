@@ -686,15 +686,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = constraints.maxWidth >= 600 ? 2 : 1;
-        final childAspectRatio = constraints.maxWidth >= 600 ? 4.0 : 4.5;
+        final childAspectRatio = constraints.maxWidth >= 600 ? 4.0 : 4.2;
 
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
+            crossAxisSpacing: 6,
+            mainAxisSpacing: 6,
             childAspectRatio: childAspectRatio,
           ),
           itemCount: actions.length,
@@ -960,53 +960,60 @@ class _QuickActionCard extends StatelessWidget {
         onTap: action.onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ), // Reduced padding
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.max,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8), // Reduced padding
                 decoration: BoxDecoration(
                   color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12), // Smaller radius
                 ),
                 child: Icon(
                   action.icon,
                   color: scheme.onPrimaryContainer,
-                  size: 22,
+                  size: 20, // Smaller icon
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 12), // Reduced spacing
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisSize: MainAxisSize.min, // Use minimum space
                   children: [
                     Text(
                       action.label,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
+                        fontSize: 12, // Smaller font size
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 24), // Reduced spacing
                     Text(
                       action.description,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
-                        fontSize: 12,
+                        fontSize: 9, // Smaller font size
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8), // Reduced spacing
               Icon(
                 Icons.arrow_forward_rounded,
                 color: scheme.onSurfaceVariant,
-                size: 18,
+                size: 16, // Smaller icon
               ),
             ],
           ),

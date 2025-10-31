@@ -4,7 +4,8 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:travel_wizards/src/shared/models/trip_location.dart' as trip_models;
+import 'package:travel_wizards/src/shared/models/trip_location.dart'
+    as trip_models;
 
 /// Enhanced map service for travel planning and trip visualization
 class EnhancedMapService {

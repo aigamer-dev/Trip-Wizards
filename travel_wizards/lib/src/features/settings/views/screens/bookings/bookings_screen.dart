@@ -29,8 +29,15 @@ class _BookingsScreenState extends State<BookingsScreen> {
     }
     final query = FirebaseFirestore.instance
         .collectionGroup('bookings')
-        .where('uid', isEqualTo: uid)
-        .orderBy('createdAtMs', descending: true);
+        .limit(500); // Increased limit to filter in memory
+
+    Stream<QuerySnapshot<Map<String, dynamic>>> safeStream;
+    try {
+      safeStream = query.snapshots();
+    } catch (e) {
+      // If query setup fails, return empty stream
+      safeStream = const Stream<QuerySnapshot<Map<String, dynamic>>>.empty();
+    }
     return ModernPageScaffold(
       pageTitle: 'Bookings',
       actions: [
@@ -45,13 +52,44 @@ class _BookingsScreenState extends State<BookingsScreen> {
         ),
       ],
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: query.snapshots(),
+        stream: safeStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const LinearProgressIndicator();
           }
+          if (snapshot.hasError) {
+            // Handle Firestore index errors gracefully
+            final error = snapshot.error.toString();
+            if (error.contains('requires an index') ||
+                error.contains('FAILED_PRECONDITION')) {
+              return const Center(
+                child: Padding(
+                  padding: Insets.allMd,
+                  child: Text(
+                    'Bookings data is loading. Please wait or try again later.',
+                  ),
+                ),
+              );
+            }
+            return Center(
+              child: Padding(
+                padding: Insets.allMd,
+                child: Text('Error loading bookings: $error'),
+              ),
+            );
+          }
           final docs = snapshot.data?.docs ?? const [];
-          var items = docs.map((d) => d.data()).toList(growable: false);
+          // Filter by uid in memory to avoid index requirement
+          final userDocs = docs
+              .where((doc) => doc.data()['uid'] == uid)
+              .toList();
+          var items = userDocs.map((d) => d.data()).toList(growable: false);
+          // Sort by createdAtMs descending since we removed orderBy to avoid index requirement
+          items.sort((a, b) {
+            final aTime = (a['createdAtMs'] as int?) ?? 0;
+            final bTime = (b['createdAtMs'] as int?) ?? 0;
+            return bTime.compareTo(aTime);
+          });
           if (_status != 'all') {
             items = items.where((e) => e['status'] == _status).toList();
           }

@@ -28,11 +28,13 @@ The following files contain sensitive Firebase configuration data and are exclud
 ### 2. Configure Flutter App
 
 Install the FlutterFire CLI:
+
 ```bash
 dart pub global activate flutterfire_cli
 ```
 
 Configure Firebase for your project:
+
 ```bash
 flutterfire configure
 ```
@@ -44,6 +46,7 @@ This will automatically generate the required configuration files.
 If you prefer manual setup, use the sample files as templates:
 
 #### For lib/firebase_options.dart
+
 1. Copy `lib/firebase_options.dart.sample` to `lib/firebase_options.dart`
 2. Replace the placeholder values with your actual Firebase configuration:
    - `YOUR_WEB_API_KEY` - Web API key from Firebase Console
@@ -54,17 +57,20 @@ If you prefer manual setup, use the sample files as templates:
    - `YOUR_MEASUREMENT_ID` - Analytics measurement ID (optional)
 
 #### For android/app/google-services.json
+
 1. Download `google-services.json` from Firebase Console:
    - Go to Project Settings → General → Your apps
    - Click on Android app → Download google-services.json
 2. Place the file in `android/app/google-services.json`
 
 #### For web/index.html
+
 1. Copy `web/index.html.sample` to `web/index.html`
 2. Replace the Firebase configuration object with your actual values
 3. Get these values from Firebase Console → Project Settings → General → Web apps
 
 #### For web/firebase-messaging-sw.js
+
 1. Copy `web/firebase-messaging-sw.js.sample` to `web/firebase-messaging-sw.js`
 2. Replace the Firebase configuration with your actual values
 3. This is required for web push notifications
@@ -72,19 +78,23 @@ If you prefer manual setup, use the sample files as templates:
 ### 4. Required Firebase Settings
 
 #### Authentication
+
 - Enable Email/Password authentication
 - Enable Google Sign-in (optional)
 - Configure authorized domains for web
 
 #### Firestore Database
+
 - Create database in production mode
 - Set up security rules (see `firestore.rules` if available)
 
 #### Storage
+
 - Enable Cloud Storage
 - Configure storage rules for user uploads
 
 #### Cloud Messaging (FCM)
+
 - Enable Cloud Messaging for push notifications
 - Configure FCM for web (add web app in Firebase Console)
 
@@ -99,6 +109,27 @@ flutter run
 ```
 
 The app should start without Firebase configuration errors.
+
+### Google API scopes & consent
+
+To prefill onboarding data we request Google People API profile information. Configure the OAuth consent screen with the following:
+
+- **Scopes**: `https://www.googleapis.com/auth/user.birthday.read`, `https://www.googleapis.com/auth/user.gender.read`, `profile`, `email`.
+- **Justification**: "Used to prefill profile details during onboarding so the user can confirm or edit the data." Include this text in the OAuth consent description.
+- **Verification**: Google marks the birthday/gender scopes as sensitive. Submit the verification form with a short demo video (showing the consent prompt and how the data is used) before launching publicly.
+
+Store the consent timestamp in `users/{uid}/consents/peopleApi` (already handled in the app) so you can audit requests.
+
+### API key restrictions
+
+Lock down your API keys before shipping:
+
+- **Maps / Places**: In Google Cloud Console → Credentials, restrict keys to the Android package (`com.travelwizards.app`) with the release SHA-1 fingerprints and HTTPS referrers for web builds (`https://*.travelwizards.app/*`, localhost for dev if required).
+- **Firebase Cloud Messaging**: Keep the server key private and use service account credentials for the new Cloud Function; do not embed it in the client app.
+- **Stripe**: Use restricted publishable keys on the client. Keep secret keys server-side and, for the competition build, rely on test keys only.
+- **Google Pay**: If you later enable live payments, switch the API to production and add the app's signature to the Google Pay console.
+
+Document these settings in your deployment checklist so every environment (dev, staging, prod) stays compliant.
 
 ## Security Notes
 

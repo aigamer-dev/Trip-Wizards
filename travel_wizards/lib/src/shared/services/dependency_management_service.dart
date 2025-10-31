@@ -38,6 +38,20 @@ class DependencyManagementService {
         false, // Disabled by default as it requires code analysis
   }) async {
     projectPath ??= Directory.current.path;
+
+    // Skip audit if running in test environment with invalid path
+    if (projectPath == '/' || projectPath.isEmpty) {
+      if (kDebugMode) {
+        debugPrint(
+          '⚠️ Skipping dependency audit: invalid project path ($projectPath)',
+        );
+      }
+      return DependencyAuditReport(
+        projectPath: projectPath,
+        auditDate: DateTime.now(),
+      );
+    }
+
     final pubspecPath = '$projectPath/pubspec.yaml';
 
     if (!File(pubspecPath).existsSync()) {

@@ -413,7 +413,6 @@ class _ReceiptPickerState extends State<_ReceiptPicker> {
       ),
     );
     if (!mounted) return;
-    if (choice == null) return;
     if (choice == 'paste') {
       final ok = await showDialog<bool>(
         context: context,

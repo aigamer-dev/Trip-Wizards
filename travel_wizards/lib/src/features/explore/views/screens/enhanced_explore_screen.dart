@@ -40,12 +40,22 @@ class _EnhancedExploreScreenState extends State<EnhancedExploreScreen>
   late final ExploreController _controller;
   late final TextEditingController _searchController;
   String? _currentQuery;
+  bool _hasInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initialize screen after dependencies are available
+    if (!_hasInitialized) {
+      _hasInitialized = true;
+      _initializeScreen();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize the enhanced controller
     _controller = ExploreController(
       store: ExploreStore.instance,
       localRepo: IdeasRepository.instance,
@@ -54,8 +64,7 @@ class _EnhancedExploreScreenState extends State<EnhancedExploreScreen>
 
     _searchController = TextEditingController();
 
-    // Load initial state
-    _initializeScreen();
+    // Don't initialize screen here - wait for didChangeDependencies
   }
 
   @override

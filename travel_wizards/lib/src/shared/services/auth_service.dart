@@ -522,7 +522,6 @@ class AuthService {
         final auth = await account?.authentication;
         token = auth?.accessToken;
       }
-      if (token == null) return null;
       final uri = Uri.parse(
         'https://people.googleapis.com/v1/people/me?personFields=photos',
       );
@@ -701,6 +700,227 @@ class AuthService {
     }, SetOptions(merge: true));
     final snap = await docRef.get();
     return AuthResult(user: user, profile: snap.data());
+  }
+
+  /// Links a Google account to an existing email account after provider conflict.
+  Future<AuthResult> linkGoogleToExistingAccount() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      throw Exception('No authenticated user found');
+    }
+
+    try {
+      // Get Google credential
+      UserCredential? googleCred;
+      if (kIsWeb) {
+        googleCred = await FirebaseAuth.instance.signInWithPopup(
+          GoogleAuthProvider()
+            ..addScope('email')
+            ..addScope('profile'),
+        );
+      } else {
+        final googleSignIn = GoogleSignIn(scopes: _scopes);
+        final googleUser = await googleSignIn.signIn();
+        if (googleUser == null) throw Exception('Google sign-in cancelled');
+
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        googleCred = await FirebaseAuth.instance.signInWithCredential(
+          credential,
+        );
+      }
+
+      if (googleCred.user == null) {
+        throw Exception('Failed to get Google user credential');
+      }
+
+      // Link the Google credential to the current user
+      final googleOAuthCred = googleCred.credential as OAuthCredential?;
+      if (googleOAuthCred == null) {
+        throw Exception('Invalid Google credential type');
+      }
+
+      final linkedCred = await currentUser.linkWithCredential(
+        GoogleAuthProvider.credential(
+          accessToken: googleOAuthCred.accessToken,
+          idToken: googleOAuthCred.idToken,
+        ),
+      );
+
+      // Update user profile in Firestore
+      final users = FirebaseFirestore.instance.collection('users');
+      final docRef = users.doc(currentUser.uid);
+      await docRef.update({
+        'provider': 'linked', // Indicates multiple providers
+        'googleLinked': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      final snap = await docRef.get();
+      return AuthResult(user: linkedCred.user!, profile: snap.data());
+    } catch (e) {
+      debugPrint('Failed to link Google account: $e');
+      rethrow;
+    }
+  }
+
+  /// Migrates data from an existing email account to a Google account.
+  /// This is used when "One account per email" policy is enabled.
+  Future<AuthResult> migrateEmailAccountToGoogle({
+    required String existingEmail,
+  }) async {
+    try {
+      // Find the existing account by email
+      final existingUserQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: existingEmail)
+          .limit(1)
+          .get();
+
+      if (existingUserQuery.docs.isEmpty) {
+        throw Exception('Existing account not found for email: $existingEmail');
+      }
+
+      final existingUserDoc = existingUserQuery.docs.first;
+      final existingUid = existingUserDoc.id;
+      final existingData = existingUserDoc.data();
+
+      // Sign in with Google to create the new account
+      UserCredential? googleCred;
+      if (kIsWeb) {
+        googleCred = await FirebaseAuth.instance.signInWithPopup(
+          GoogleAuthProvider()
+            ..addScope('email')
+            ..addScope('profile'),
+        );
+      } else {
+        final googleSignIn = GoogleSignIn(scopes: _scopes);
+        final googleUser = await googleSignIn.signIn();
+        if (googleUser == null) throw Exception('Google sign-in cancelled');
+
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        googleCred = await FirebaseAuth.instance.signInWithCredential(
+          credential,
+        );
+      }
+
+      if (googleCred.user == null) {
+        throw Exception('Failed to create Google account');
+      }
+
+      final newUid = googleCred.user!.uid;
+
+      // Copy data from old account to new account
+      final newUserData = {
+        ...existingData,
+        'provider': 'google',
+        'googleLinked': true,
+        'migratedFrom': existingUid,
+        'migratedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Remove sensitive migration data
+      newUserData.remove('migrationPending');
+      newUserData.remove('migrationToken');
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(newUid)
+          .set(newUserData);
+
+      // Mark old account as migrated (don't delete immediately for safety)
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(existingUid)
+          .update({
+            'migratedTo': newUid,
+            'migratedAt': FieldValue.serverTimestamp(),
+            'accountStatus': 'migrated',
+          });
+
+      final newUserDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(newUid)
+          .get();
+
+      return AuthResult(user: googleCred.user!, profile: newUserDoc.data());
+    } catch (e) {
+      debugPrint('Failed to migrate email account to Google: $e');
+      rethrow;
+    }
+  }
+
+  /// Gets information about existing account for a given email.
+  Future<Map<String, dynamic>?> getExistingAccountInfo(String email) async {
+    try {
+      final users = FirebaseFirestore.instance.collection('users');
+      final query = await users.where('email', isEqualTo: email).limit(1).get();
+
+      if (query.docs.isEmpty) return null;
+
+      final doc = query.docs.first;
+      return {
+        'uid': doc.id,
+        'provider': doc.data()['provider'] ?? 'unknown',
+        'hasOnboarded': doc.data()['hasOnboarded'] ?? false,
+        ...doc.data(),
+      };
+    } catch (e) {
+      debugPrint('Failed to get existing account info: $e');
+      return null;
+    }
+  }
+
+  /// Rollback provider migration within a short time window.
+  /// This allows users to undo account linking or migration if they change their mind.
+  Future<void> rollbackProviderMigration({
+    required String userId,
+    required String previousProvider,
+    Duration undoWindow = const Duration(seconds: 30),
+  }) async {
+    try {
+      final users = FirebaseFirestore.instance.collection('users');
+      final docRef = users.doc(userId);
+
+      // Check if we're within the undo window
+      final doc = await docRef.get();
+      if (!doc.exists) {
+        throw Exception('User document not found');
+      }
+
+      final data = doc.data()!;
+      final updatedAt = data['updatedAt'] as Timestamp?;
+      if (updatedAt == null) {
+        throw Exception('No update timestamp found');
+      }
+
+      final timeSinceUpdate = DateTime.now().difference(updatedAt.toDate());
+      if (timeSinceUpdate > undoWindow) {
+        throw Exception('Undo window has expired (${undoWindow.inSeconds}s)');
+      }
+
+      // Rollback the provider change
+      await docRef.update({
+        'provider': previousProvider,
+        'googleLinked': previousProvider == 'linked' ? true : null,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      debugPrint(
+        'Successfully rolled back provider migration for user $userId',
+      );
+    } catch (e) {
+      debugPrint('Failed to rollback provider migration: $e');
+      rethrow;
+    }
   }
 
   Future<void> signOut() async {

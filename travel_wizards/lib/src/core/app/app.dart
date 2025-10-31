@@ -11,118 +11,143 @@ import 'package:travel_wizards/src/shared/services/permissions_service.dart';
 import 'package:travel_wizards/src/shared/utils/dependency_audit_utility.dart';
 import '../l10n/app_localizations.dart';
 import '../routing/router.dart';
-import 'theme.dart';
 import 'settings_controller.dart';
 
-class TravelWizardsApp extends StatelessWidget {
+class TravelWizardsApp extends StatefulWidget {
   const TravelWizardsApp({
     super.key,
-    required this.lightScheme,
-    required this.darkScheme,
+    required this.lightTheme,
+    required this.darkTheme,
+    this.routerConfig,
   });
 
-  final ColorScheme lightScheme;
-  final ColorScheme darkScheme;
+  final ThemeData lightTheme;
+  final ThemeData darkTheme;
+  final RouterConfig<Object>? routerConfig;
 
   static final GlobalKey<ScaffoldMessengerState> messengerKey =
       GlobalKey<ScaffoldMessengerState>();
+
+  @override
+  State<TravelWizardsApp> createState() => _TravelWizardsAppState();
+}
+
+class _TravelWizardsAppState extends State<TravelWizardsApp> {
+  bool _hasInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize permissions and services once after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_hasInitialized) return;
+      _hasInitialized = true;
+
+      // Best-effort: ignore results; user can deny and continue.
+      try {
+        await PermissionsService.instance.requestSilently(
+          AppPermission.location,
+        );
+        await PermissionsService.instance.requestSilently(
+          AppPermission.contacts,
+        );
+        await PermissionsService.instance.requestSilently(
+          AppPermission.calendar,
+        );
+      } catch (e) {
+        // Ignore permission errors during initialization
+      }
+
+      // Kick off lightweight background syncs (non-blocking).
+      // Calendar trips import
+      try {
+        // Ensure timezone db is initialized before reading calendar dates
+        CalendarService.ensureTimezoneInitialized();
+        // Fire-and-forget; errors are tolerated
+        // ignore: unawaited_futures
+        CalendarService.syncTripsFromCalendar();
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'App initialization: Calendar sync',
+          showToUser: false,
+        );
+      }
+      // Contacts import
+      try {
+        // ignore: unawaited_futures
+        ContactsService.instance.syncContacts();
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'App initialization: Contacts sync',
+          showToUser: false,
+        );
+      }
+      // Initialize accessibility service
+      try {
+        // ignore: unawaited_futures
+        AccessibilityService.instance.initialize();
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'App initialization: Accessibility service',
+          showToUser: false,
+        );
+      }
+      // Initialize in-app notifications (SnackBars) once the messenger exists
+      try {
+        final messenger = TravelWizardsApp.messengerKey.currentState;
+        if (messenger != null) {
+          NotificationsService.instance.init(messenger);
+        }
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'App initialization: Notifications service',
+          showToUser: false,
+        );
+      }
+
+      // Run dependency audit in debug mode only
+      try {
+        if (kDebugMode) {
+          // Run dependency audit for development insights
+          // ignore: unawaited_futures
+          DependencyAuditUtility.runDependencyAudit();
+        }
+      } catch (e) {
+        ErrorHandlingService.instance.handleError(
+          e,
+          context: 'App initialization: Dependency audit',
+          showToUser: false,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: AppSettings.instance,
       builder: (context, _) {
-        // Kick off silent permission requests once after first frame.
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          // Best-effort: ignore results; user can deny and continue.
-          await PermissionsService.instance.requestSilently(
-            AppPermission.location,
-          );
-          await PermissionsService.instance.requestSilently(
-            AppPermission.contacts,
-          );
-          await PermissionsService.instance.requestSilently(
-            AppPermission.calendar,
-          );
-          // Kick off lightweight background syncs (non-blocking).
-          // Calendar trips import
-          try {
-            // Ensure timezone db is initialized before reading calendar dates
-            CalendarService.ensureTimezoneInitialized();
-            // Fire-and-forget; errors are tolerated
-            // ignore: unawaited_futures
-            CalendarService.syncTripsFromCalendar();
-          } catch (e) {
-            ErrorHandlingService.instance.handleError(
-              e,
-              context: 'App initialization: Calendar sync',
-              showToUser: false,
-            );
-          }
-          // Contacts import
-          try {
-            // ignore: unawaited_futures
-            ContactsService.instance.syncContacts();
-          } catch (e) {
-            ErrorHandlingService.instance.handleError(
-              e,
-              context: 'App initialization: Contacts sync',
-              showToUser: false,
-            );
-          }
-          // Initialize accessibility service
-          try {
-            // ignore: unawaited_futures
-            AccessibilityService.instance.initialize();
-          } catch (e) {
-            ErrorHandlingService.instance.handleError(
-              e,
-              context: 'App initialization: Accessibility service',
-              showToUser: false,
-            );
-          }
-          // Initialize in-app notifications (SnackBars) once the messenger exists
-          try {
-            final messenger = TravelWizardsApp.messengerKey.currentState;
-            if (messenger != null) {
-              NotificationsService.instance.init(messenger);
-            }
-          } catch (e) {
-            ErrorHandlingService.instance.handleError(
-              e,
-              context: 'App initialization: Notifications service',
-              showToUser: false,
-            );
-          }
-
-          // Run dependency audit in debug mode only
-          try {
-            if (kDebugMode) {
-              // Run dependency audit for development insights
-              // ignore: unawaited_futures
-              DependencyAuditUtility.runDependencyAudit();
-            }
-          } catch (e) {
-            ErrorHandlingService.instance.handleError(
-              e,
-              context: 'App initialization: Dependency audit',
-              showToUser: false,
-            );
-          }
-        });
         return ChangeNotifierProvider<AccessibilityService>.value(
           value: AccessibilityService.instance,
           child: Consumer<AccessibilityService>(
             builder: (context, accessibilityService, child) {
-              final baseTheme = themeFromScheme(
-                AppSettings.instance.themeMode == ThemeMode.dark
-                    ? darkScheme
-                    : lightScheme,
-              );
+              final baseTheme = AppSettings.instance.themeMode == ThemeMode.dark
+                  ? widget.darkTheme
+                  : widget.lightTheme;
               final accessibleTheme = accessibilityService
                   .createAccessibleTheme(baseTheme);
               final accessibleDarkTheme = accessibilityService
-                  .createAccessibleTheme(themeFromScheme(darkScheme));
+                  .createAccessibleTheme(widget.darkTheme);
+              final textScaler = TextScaler.linear(
+                accessibilityService.textScaleFactor,
+              );
+              final boldText = accessibilityService.isHighContrastEnabled
+                  ? true
+                  : null;
 
               return MaterialApp.router(
                 debugShowCheckedModeBanner: false,
@@ -132,8 +157,20 @@ class TravelWizardsApp extends StatelessWidget {
                 darkTheme: accessibleDarkTheme,
                 themeMode: AppSettings.instance.themeMode,
                 locale: AppSettings.instance.locale,
-                routerConfig: appRouter,
-                scaffoldMessengerKey: messengerKey,
+                routerConfig: widget.routerConfig ?? appRouter,
+                scaffoldMessengerKey: TravelWizardsApp.messengerKey,
+                builder: (context, child) {
+                  final mediaQuery = MediaQuery.of(context);
+                  final updatedQuery = mediaQuery.copyWith(
+                    textScaler: textScaler,
+                    boldText: boldText ?? mediaQuery.boldText,
+                  );
+
+                  return MediaQuery(
+                    data: updatedQuery,
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                },
                 supportedLocales: const [
                   Locale('en'),
                   Locale('hi'),

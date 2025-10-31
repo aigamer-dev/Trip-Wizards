@@ -33,6 +33,8 @@ import 'package:travel_wizards/src/features/trip_planning/views/screens/trip_exe
 import 'package:travel_wizards/src/features/trip_planning/views/screens/trip_history_screen.dart';
 import 'package:travel_wizards/src/shared/services/navigation_service.dart';
 
+import 'package:travel_wizards/src/shared/widgets/static_tutorials_screen.dart';
+
 import 'package:travel_wizards/src/features/trip_planning/views/screens/plan_trip_screen.dart';
 import 'package:travel_wizards/src/shared/widgets/not_found_screen.dart';
 import 'package:travel_wizards/src/shared/widgets/static_about_screen.dart';
@@ -40,7 +42,7 @@ import 'package:travel_wizards/src/shared/widgets/static_faq_screen.dart';
 import 'package:travel_wizards/src/shared/widgets/static_feedback_screen.dart';
 import 'package:travel_wizards/src/shared/widgets/static_help_screen.dart';
 import 'package:travel_wizards/src/shared/widgets/static_legal_screen.dart';
-import 'package:travel_wizards/src/shared/widgets/static_tutorials_screen.dart';
+import 'package:travel_wizards/src/shared/widgets/travel_components/components_demo.dart';
 
 GoRouter _buildRouter() {
   final router = GoRouter(
@@ -214,6 +216,11 @@ GoRouter _buildRouter() {
         path: '/feedback',
         name: 'feedback',
         pageBuilder: (context, state) => fadePage(const StaticFeedbackScreen()),
+      ),
+      GoRoute(
+        path: '/components-demo',
+        name: 'components_demo',
+        pageBuilder: (context, state) => fadePage(const ComponentsDemoPage()),
       ),
       GoRoute(
         path: '/map-demo',

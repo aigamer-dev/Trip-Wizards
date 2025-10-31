@@ -230,8 +230,9 @@ class _NavShellState extends State<NavShell> with NavigationAware {
                     ),
                     child: Row(
                       children: [
-                        // Search bar
+                        // Search bar - make it more responsive
                         Expanded(
+                          flex: 2,
                           child: Container(
                             constraints: const BoxConstraints(maxWidth: 600),
                             child: SearchBar(
@@ -260,42 +261,60 @@ class _NavShellState extends State<NavShell> with NavigationAware {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        // Action buttons
-                        IconButton(
-                          tooltip: 'Notifications',
-                          icon: const Icon(Icons.notifications_outlined),
-                          onPressed: () => context.pushNamed('notifications'),
-                        ),
-                        IconButton(
-                          tooltip: 'Saved ideas',
-                          icon: const Icon(Icons.favorite_outline_rounded),
-                          onPressed: () => context.pushNamed('drafts'),
-                        ),
-                        const SizedBox(width: 8),
-                        FutureBuilder<String?>(
-                          future: AuthService.instance.getPreferredAvatarUrl(),
-                          builder: (context, snapshot) {
-                            final url = snapshot.data;
-                            return IconButton(
-                              tooltip: 'Account',
-                              icon: ProfileAvatar(
-                                photoUrl: url,
-                                size: 40,
-                                backgroundColor: scheme.primaryContainer,
-                                iconColor: scheme.onPrimaryContainer,
-                                semanticLabel: 'Open account menu',
-                              ),
-                              onPressed: () async {
-                                await showModalBottomSheet(
-                                  context: context,
-                                  showDragHandle: true,
-                                  useSafeArea: true,
-                                  builder: (ctx) => _ProfileQuickSheet(),
-                                );
-                              },
-                            );
-                          },
+                        // Action buttons - wrap in responsive container
+                        Flexible(
+                          flex: 1,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Notifications',
+                                  icon: const Icon(
+                                    Icons.notifications_outlined,
+                                  ),
+                                  onPressed: () =>
+                                      context.pushNamed('notifications'),
+                                ),
+                                IconButton(
+                                  tooltip: 'Saved ideas',
+                                  icon: const Icon(
+                                    Icons.favorite_outline_rounded,
+                                  ),
+                                  onPressed: () => context.pushNamed('drafts'),
+                                ),
+                                const SizedBox(width: 8),
+                                FutureBuilder<String?>(
+                                  future: AuthService.instance
+                                      .getPreferredAvatarUrl(),
+                                  builder: (context, snapshot) {
+                                    final url = snapshot.data;
+                                    return IconButton(
+                                      tooltip: 'Account',
+                                      icon: ProfileAvatar(
+                                        photoUrl: url,
+                                        size: 40,
+                                        backgroundColor:
+                                            scheme.primaryContainer,
+                                        iconColor: scheme.onPrimaryContainer,
+                                        semanticLabel: 'Open account menu',
+                                      ),
+                                      onPressed: () async {
+                                        await showModalBottomSheet(
+                                          context: context,
+                                          showDragHandle: true,
+                                          useSafeArea: true,
+                                          builder: (ctx) =>
+                                              _ProfileQuickSheet(),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -696,11 +715,20 @@ class _ProfileQuickSheet extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.logout_rounded),
                 title: const Text('Logout'),
-                onTap: () {
+                onTap: () async {
                   Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Logged out (dummy)')),
-                  );
+                  try {
+                    await AuthService.instance.signOut();
+                    if (context.mounted) {
+                      GoRouter.of(context).go('/login');
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error signing out: $e')),
+                      );
+                    }
+                  }
                 },
               ),
             ],
@@ -833,11 +861,20 @@ class _MobileDrawer extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.logout_rounded),
               title: const Text('Logout'),
-              onTap: () {
+              onTap: () async {
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logged out (dummy)')),
-                );
+                try {
+                  await AuthService.instance.signOut();
+                  if (context.mounted) {
+                    GoRouter.of(context).go('/login');
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error signing out: $e')),
+                    );
+                  }
+                }
               },
             ),
           ],

@@ -49,6 +49,9 @@ class DestinationChip extends StatelessWidget {
           ],
           Text(
             destination,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
             style: theme.textTheme.labelMedium?.copyWith(
               color:
                   textColor ??
@@ -61,6 +64,9 @@ class DestinationChip extends StatelessWidget {
           if (country != null) ...[
             Text(
               ', $country',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
               style: theme.textTheme.labelSmall?.copyWith(
                 color:
                     textColor ??
@@ -134,6 +140,9 @@ class ActivityChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             activity,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
             style: theme.textTheme.labelMedium?.copyWith(
               color: isSelected ? colorScheme.onPrimary : activityColor,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
@@ -262,6 +271,9 @@ class TransportationChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             transportType,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
             style: theme.textTheme.labelMedium?.copyWith(
               color: isSelected
                   ? colorScheme.onSecondaryContainer
@@ -273,6 +285,9 @@ class TransportationChip extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               '($duration)',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
               style: theme.textTheme.labelSmall?.copyWith(
                 color: isSelected
                     ? colorScheme.onSecondaryContainer.withValues(alpha: 0.8)
