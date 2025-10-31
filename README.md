@@ -68,7 +68,9 @@ While AI assists throughout the experience, the core of Travel Wizards stays foc
 
 5. **Configure Google Services** (See [Google Services Setup](#google-services-setup))
 
-6. **Run the app**
+6. **Set up Travel-agent-ADK (AI Service)** (See [AI Service Setup](#ai-service-setup))
+
+7. **Run the app**
 
   ```bash
   flutter run
@@ -224,6 +226,58 @@ flutter analyze
    FIREBASE_WEB_APP_ID=your-web-app-id
    FIREBASE_ANDROID_APP_ID=your-android-app-id
    ```
+
+### AI Service Setup
+
+The app uses the [Travel-agent-ADK](https://github.com/karthik-r14/Travel-agent-ADK) powered by Google ADK for AI-powered travel assistance. This service runs separately from the Flutter app.
+
+1. **Initialize the submodule**
+
+   ```bash
+   # From repository root
+   git submodule update --init --recursive
+   ```
+
+2. **Set up the ADK service**
+
+   ```bash
+   cd travel_agent_adk/travel-concierge
+   
+   # Install Poetry (if not installed)
+   curl -sSL https://install.python-poetry.org | python3 -
+   
+   # Install dependencies
+   poetry install
+   
+   # Configure environment
+   cp .env.example .env
+   # Edit .env with your Google Cloud credentials and API keys
+   ```
+
+3. **Required API keys for ADK** (add to `travel_agent_adk/travel-concierge/.env`)
+
+   - `GOOGLE_CLOUD_PROJECT` - Your GCP project ID
+   - `GOOGLE_CLOUD_LOCATION` - GCP region (e.g., us-central1)
+   - `GOOGLE_API_KEY` - Gemini API key (for ML Dev backend)
+   - `GOOGLE_PLACES_API_KEY` - Google Places API key
+
+4. **Run the ADK service**
+
+   ```bash
+   cd travel_agent_adk/travel-concierge
+   poetry run adk web
+   # Service starts on http://localhost:8000
+   ```
+
+5. **Configure Flutter app** (optional - defaults to localhost:8000)
+
+   ```bash
+   cd travel_wizards
+   cp .env.example .env
+   # Add: ADK_API_URL=http://localhost:8000
+   ```
+
+**Note**: The ADK service must be running for AI features (group chat @ai mentions, destination suggestions, itinerary planning). The app provides fallback responses when the service is unavailable.
 
 ### Google Services Setup
 
