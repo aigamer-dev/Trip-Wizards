@@ -1,34 +1,38 @@
+import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Avoid importing dart:io on web; use foundation platform checks instead.
-import 'src/app/app.dart';
-import 'src/app/theme.dart';
-import 'src/app/settings_controller.dart';
-import 'src/config/env.dart';
-import 'src/services/backend_service.dart';
+import 'src/core/app/app.dart';
+import 'src/core/app/theme.dart';
+import 'src/ui/design_tokens.dart';
+import 'src/core/app/settings_controller.dart';
+import 'src/core/config/env.dart';
+import 'src/shared/services/backend_service.dart';
 import 'package:provider/provider.dart';
-import 'src/data/explore_store.dart';
-import 'src/data/plan_trip_store.dart';
-import 'src/di/travel_wizards_service_registry.dart';
+import 'src/features/explore/data/explore_store.dart';
+import 'src/features/trip_planning/data/plan_trip_store.dart';
+import 'src/core/architecture/travel_wizards_service_registry.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'src/services/settings_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'src/shared/services/settings_repository.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'src/services/local_sync_repository.dart';
-import 'src/data/onboarding_state.dart';
-import 'src/services/iap_service.dart';
-import 'src/services/push_notifications_service.dart';
-import 'src/services/error_handling_service.dart';
-import 'src/services/offline_service.dart';
-import 'src/services/performance_optimization_manager.dart';
-import 'src/services/navigation_service.dart';
-import 'src/services/notification_service.dart';
-import 'src/services/emergency_service.dart';
-import 'src/services/android_optimization_service.dart';
-import 'src/services/web_optimization_service.dart';
+import 'src/shared/services/local_sync_repository.dart';
+import 'src/features/onboarding/data/onboarding_state.dart';
+import 'src/shared/services/iap_service.dart';
+import 'src/shared/services/push_notifications_service.dart';
+import 'src/shared/services/error_handling_service.dart';
+import 'src/shared/services/offline_service.dart';
+import 'src/shared/services/performance_optimization_manager.dart';
+import 'src/shared/services/navigation_service.dart';
+import 'src/shared/services/notification_service.dart';
+import 'src/shared/services/emergency_service.dart';
+import 'src/shared/services/android_optimization_service.dart';
+import 'src/shared/services/web_optimization_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,27 +66,27 @@ Future<void> main() async {
   await ErrorHandlingService.instance.handleAsync(
     () => AppSettings.instance.load(),
     context: 'App Settings Loading',
-    showUserError: false,
+    showUserError: true,
   );
 
   // Initialize Hive for lightweight local persistence
   await ErrorHandlingService.instance.handleAsync(
     () => Hive.initFlutter(),
     context: 'Hive Initialization',
-    showUserError: false,
+    showUserError: true,
   );
 
   await ErrorHandlingService.instance.handleAsync(
     () => LocalSyncRepository.instance.init(),
     context: 'Local Sync Repository Initialization',
-    showUserError: false,
+    showUserError: true,
   );
 
   // Initialize offline service for caching and offline functionality
   await ErrorHandlingService.instance.handleAsync(
     () => OfflineService.instance.initialize(),
     context: 'Offline Service Initialization',
-    showUserError: false,
+    showUserError: true,
   );
 
   // Initialize navigation service for enhanced navigation
@@ -92,7 +96,7 @@ Future<void> main() async {
   await ErrorHandlingService.instance.handleAsync(
     () => PerformanceOptimizationManager.instance.initialize(),
     context: 'Performance Optimization Initialization',
-    showUserError: false,
+    showUserError: true,
   );
 
   // Initialize platform-specific optimizations
@@ -100,7 +104,7 @@ Future<void> main() async {
     await ErrorHandlingService.instance.handleAsync(
       () => AndroidOptimizationService.instance.initialize(),
       context: 'Android Optimization Initialization',
-      showUserError: false,
+      showUserError: true,
     );
   }
 
@@ -108,7 +112,7 @@ Future<void> main() async {
     await ErrorHandlingService.instance.handleAsync(
       () => WebOptimizationService.instance.initialize(),
       context: 'Web Optimization Initialization',
-      showUserError: false,
+      showUserError: true,
     );
   }
 
@@ -120,29 +124,46 @@ Future<void> main() async {
     showUserError: false,
   );
 
+  // Connect to Firebase emulators if enabled (for integration tests)
+  const bool useEmulators = bool.fromEnvironment(
+    'USE_FIREBASE_EMULATORS',
+    defaultValue: false,
+  );
+  if (useEmulators) {
+    const String emulatorHost = String.fromEnvironment(
+      'FIREBASE_EMULATOR_HOST',
+      defaultValue: '10.0.2.2',
+    );
+    await ErrorHandlingService.instance.handleAsync(
+      () async {
+        FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9099);
+        FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, 9098);
+        // Logging removed for production
+      },
+      context: 'Firebase Emulator Connection',
+      showUserError: false,
+    );
+  }
+
   // Web: Ensure auth persistence and finalize any pending redirect sign-in
   if (kIsWeb) {
     await ErrorHandlingService.instance.handleAsync(
       () async {
         try {
           await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-          debugPrint('✅ [main] Web auth persistence set to LOCAL');
+          // Logging removed for production
         } catch (e1) {
-          debugPrint(
-            '⚠️ [main] LOCAL persistence failed: $e1 (trying SESSION)',
-          );
+          // Logging removed for production
           try {
             await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
-            debugPrint('✅ [main] Web auth persistence set to SESSION');
+            // Logging removed for production
           } catch (e2) {
-            debugPrint(
-              '⚠️ [main] SESSION persistence failed: $e2 (falling back to NONE)',
-            );
+            // Logging removed for production
             try {
               await FirebaseAuth.instance.setPersistence(Persistence.NONE);
-              debugPrint('✅ [main] Web auth persistence set to NONE');
+              // Logging removed for production
             } catch (e3) {
-              debugPrint('🚨 [main] All persistence modes failed: $e3');
+              // Logging removed for production
             }
           }
         }
@@ -151,15 +172,13 @@ Future<void> main() async {
         try {
           final result = await FirebaseAuth.instance.getRedirectResult();
           if (result.user != null) {
-            debugPrint(
-              '🔁 [main] Redirect sign-in completed for uid=${result.user!.uid}',
-            );
+            // Logging removed for production
           } else {
-            debugPrint('ℹ️ [main] No pending redirect result');
+            // Logging removed for production
           }
         } catch (e) {
           // If there was no redirect or it failed, ignore here; errors are handled in UI.
-          debugPrint('⚠️ [main] getRedirectResult error: $e');
+          // Logging removed for production
         }
       },
       context: 'Web Auth Persistence & Redirect Finalization',
@@ -234,6 +253,41 @@ Future<void> main() async {
         context: 'Settings Push to Firestore',
         showUserError: false,
       );
+
+      unawaited(
+        ErrorHandlingService.instance.handleAsync(
+          () => NotificationService.instance.ensurePermissionsRequested(),
+          context: 'Notification Permission Request',
+          showUserError: false,
+        ),
+      );
+
+      unawaited(
+        ErrorHandlingService.instance.handleAsync(
+          () => PushNotificationsService.instance.requestPermissionsIfNeeded(),
+          context: 'Push Notification Permission Request',
+          showUserError: false,
+        ),
+      );
+
+      unawaited(
+        ErrorHandlingService.instance.handleAsync(
+          () => EmergencyService.instance.ensurePermissionsRequested(),
+          context: 'Emergency Permission Request',
+          showUserError: false,
+        ),
+      );
+
+      if (kIsWeb) {
+        unawaited(
+          ErrorHandlingService.instance.handleAsync(
+            () =>
+                WebOptimizationService.instance.requestNotificationPermission(),
+            context: 'Web Notification Permission Request',
+            showUserError: false,
+          ),
+        );
+      }
     }
   });
 
@@ -247,8 +301,10 @@ class TravelWizardsBootstrap extends StatelessWidget {
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
-        final light = lightDynamic ?? kFallbackLightScheme;
-        final dark = darkDynamic ?? kFallbackDarkScheme;
+        final lightScheme = lightDynamic ?? DesignTokens.fallbackLightScheme;
+        final darkScheme = darkDynamic ?? DesignTokens.fallbackDarkScheme;
+        final lightTheme = AppTheme.light.copyWith(colorScheme: lightScheme);
+        final darkTheme = AppTheme.dark.copyWith(colorScheme: darkScheme);
         return MultiProvider(
           providers: [
             ChangeNotifierProvider<AppSettings>.value(
@@ -261,10 +317,16 @@ class TravelWizardsBootstrap extends StatelessWidget {
             ChangeNotifierProvider<OnboardingState>.value(
               value: OnboardingState.instance,
             ),
+            ChangeNotifierProvider<ThemeProvider>(
+              create: (_) => ThemeProvider(),
+            ),
           ],
           child: PerformanceOptimizedApp(
             criticalAssets: const [],
-            child: TravelWizardsApp(lightScheme: light, darkScheme: dark),
+            child: TravelWizardsApp(
+              lightTheme: lightTheme,
+              darkTheme: darkTheme,
+            ),
           ),
         );
       },

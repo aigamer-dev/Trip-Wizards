@@ -2,6 +2,8 @@
 
 A comprehensive Flutter application for AI-powered travel planning with real-time collaboration, offline support, emergency assistance, and advanced trip management features.
 
+While AI assists throughout the experience, the core of Travel Wizards stays focused on dependable trip orchestration, with the assistant acting as an enhancer rather than the main interface.
+
 ## 🌟 Features
 
 ### Core Travel Planning
@@ -21,6 +23,14 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 - **Payment Integration**: Stripe and Google Pay support
 - **Performance Optimization**: Advanced caching and performance monitoring
 - **Material 3 Design**: Modern UI with comprehensive theming
+
+### Wear OS Companion Experience
+
+- **Itinerary Glance Tile**: Lightweight tile surfaces the next upcoming trip segment, gate info, and countdown at a glance.
+- **Actionable Notifications**: Mirrored push notifications provide quick actions for check-in, share ETA, or acknowledge alerts directly from the watch.
+- **Trip Progress Peek**: Swipeable card lists current day agenda and travel checklist items optimized for the circular UI.
+- **Offline Snapshot**: Automatically syncs the next 24 hours of itinerary details when the watch reconnects, keeping essentials available without the phone.
+- **Implementation Plan**: Deliver as a dedicated Flutter module (`wear_companion/`) that shares core services via a federated package while keeping the phone app as the primary hub.
 
 ## 🚀 Quick Start
 
@@ -58,11 +68,115 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
 
 5. **Configure Google Services** (See [Google Services Setup](#google-services-setup))
 
-6. **Run the app**
+6. **Set up Travel-agent-ADK (AI Service)** (See [AI Service Setup](#ai-service-setup))
 
-   ```bash
-   flutter run
-   ```
+7. **Run the app**
+
+  ```bash
+  flutter run
+  ```
+
+## 📦 Deployment
+
+This section contains the minimal steps and artifact locations to publish or test the Travel Wizards app (web + Android). It intentionally contains no secrets — store keys in CI secrets or local `.env` files as described below.
+
+### Artifacts (already produced)
+
+- Web release bundle: `travel_wizards/build/web`
+- Android debug APK: `travel_wizards/build/app/outputs/flutter-apk/app-debug.apk`
+
+If you need a release APK / AAB, run the production build steps described below.
+
+### Quick local checks
+
+#### Serve web artifact locally
+
+```bash
+# from repo root
+python3 -m http.server 8080 -d travel_wizards/build/web
+# then open http://localhost:8080
+```
+
+#### Install Android debug APK on device/emulator
+
+```bash
+# from repo root
+adb install -r travel_wizards/build/app/outputs/flutter-apk/app-debug.apk
+```
+
+#### Run app in debug mode
+
+```bash
+cd travel_wizards
+flutter run
+```
+
+### Production Android (AAB) build
+
+1. Ensure keystore and signing config available locally or in CI. Add keystore to `android/app` or configure CI secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEYSTORE_ALIAS`, `ANDROID_KEYSTORE_ALIAS_PASSWORD`).
+2. Build AAB:
+
+  ```bash
+  cd travel_wizards
+  flutter build appbundle --release -t lib/main.dart
+  ```
+
+1. Upload AAB to Google Play Console (internal testing first). Fill Play Store listing, upload screenshots and privacy policy URL.
+
+### Production Web deployment (Firebase Hosting)
+
+1. Install Firebase CLI and log in:
+
+```bash
+npm install -g firebase-tools
+firebase login
+```
+
+2. Deploy to preview channel or production:
+
+  ```bash
+  cd travel_wizards
+  # preview channel
+  firebase hosting:channel:deploy preview --only hosting
+  # or production
+  firebase deploy --only hosting
+  ```
+
+> Note: keep `firebase.json` and hosting config updated. For first-time deploy, run `firebase init hosting` and follow prompts.
+
+### CI secrets (add these to GitHub Actions repository secrets)
+
+- FIREBASE_TOKEN — token for `firebase deploy` (or set up GH Firebase action with service account)
+- ANDROID_KEYSTORE_BASE64 — base64-encoded keystore for signing releases (or use Google Play App Signing)
+- ANDROID_KEYSTORE_PASSWORD
+- ANDROID_KEY_ALIAS
+- ANDROID_KEY_ALIAS_PASSWORD
+- BACKEND_BASE_URL — URL for backend (if any) used by the app in CI builds
+
+Do NOT commit any secrets or service account keys to source control.
+
+### Tests and verification
+
+- Run unit & widget tests locally:
+
+```bash
+cd travel_wizards
+flutter test
+```
+
+- Run static analysis:
+
+```bash
+flutter analyze
+```
+
+- Golden tests: ensure the `test/goldens/` baselines are present and updated only intentionally. CI will run golden comparisons.
+
+### Notes & troubleshooting
+
+- Web build warnings about WASM compatibility for some JS-interop packages are informational; they don't block normal web deployment to modern browsers.
+- If Firebase Hosting deploy fails due to missing config, double-check `travel_wizards/lib/firebase_options.dart` and `travel_wizards/web/index.html` placeholders.
+- For Play Console privacy & sensitive scope verification (People API), ensure your OAuth consent screen is configured before requesting sensitive scopes in production.
 
 ## 🔧 Configuration
 
@@ -113,6 +227,58 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
    FIREBASE_ANDROID_APP_ID=your-android-app-id
    ```
 
+### AI Service Setup
+
+The app uses the [Travel-agent-ADK](https://github.com/karthik-r14/Travel-agent-ADK) powered by Google ADK for AI-powered travel assistance. This service runs separately from the Flutter app.
+
+1. **Initialize the submodule**
+
+   ```bash
+   # From repository root
+   git submodule update --init --recursive
+   ```
+
+2. **Set up the ADK service**
+
+   ```bash
+   cd travel_agent_adk/travel-concierge
+   
+   # Install Poetry (if not installed)
+   curl -sSL https://install.python-poetry.org | python3 -
+   
+   # Install dependencies
+   poetry install
+   
+   # Configure environment
+   cp .env.example .env
+   # Edit .env with your Google Cloud credentials and API keys
+   ```
+
+3. **Required API keys for ADK** (add to `travel_agent_adk/travel-concierge/.env`)
+
+   - `GOOGLE_CLOUD_PROJECT` - Your GCP project ID
+   - `GOOGLE_CLOUD_LOCATION` - GCP region (e.g., us-central1)
+   - `GOOGLE_API_KEY` - Gemini API key (for ML Dev backend)
+   - `GOOGLE_PLACES_API_KEY` - Google Places API key
+
+4. **Run the ADK service**
+
+   ```bash
+   cd travel_agent_adk/travel-concierge
+   poetry run adk web
+   # Service starts on http://localhost:8000
+   ```
+
+5. **Configure Flutter app** (optional - defaults to localhost:8000)
+
+   ```bash
+   cd travel_wizards
+   cp .env.example .env
+   # Add: ADK_API_URL=http://localhost:8000
+   ```
+
+**Note**: The ADK service must be running for AI features (group chat @ai mentions, destination suggestions, itinerary planning). The app provides fallback responses when the service is unavailable.
+
 ### Google Services Setup
 
 1. **Google Maps API**
@@ -139,6 +305,80 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
      # In travel_wizards/web/index.html, replace YOUR_GOOGLE_MAPS_API_KEY
      ```
 
+### Location Autocomplete - FREE & Optimized for India
+
+The app uses **enhanced location services** specifically optimized for Indian users - completely FREE with NO API keys or billing required!
+
+#### 🇮🇳 **Enhanced Indian Location Support**
+
+- ✅ **Major Indian Cities**: Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad, Pune, Ahmedabad, and more
+- ✅ **Airport Codes**: BOM, DEL, BLR, MAA, CCU, HYD, PNQ, AMD, GOI, JAI, COK, TRV, etc.
+- ✅ **City Variations**: Handles both Mumbai/Bombay, Chennai/Madras, Bangalore/Bengaluru, Kolkata/Calcutta
+- ✅ **Tourist Places**: Gateway of India, India Gate, Taj Mahal, Red Fort, Golden Temple, and popular landmarks
+- ✅ **Smart Prioritization**: Indian locations appear first in search results
+
+#### 🌐 **Powered by Multiple FREE Sources**
+
+- **OpenStreetMap Nominatim** - Global location data (FREE)
+- **Enhanced Indian Database** - Airport codes and popular destinations
+- **Smart Search Logic** - India-first prioritization for better user experience
+
+#### ⚡ **Key Features**
+
+- ✅ **Completely FREE** - No billing, no credit card needed
+- ✅ **No API key required** - Works out of the box
+- ✅ **Real-time autocomplete** - Instant suggestions as you type
+- ✅ **Airport code support** - Type "BOM" to find Mumbai Airport
+- ✅ **City variations** - Search "Bombay" and find Mumbai
+- ✅ **Tourist destinations** - Find popular landmarks and attractions
+
+#### 🛠️ **Technical Implementation**
+
+- Uses `IndianLocationService` in `lib/src/shared/services/indian_location_service.dart`
+- Falls back to `NominatimService` for global coverage
+- Automatically rate-limited to comply with usage policies
+- Smart result prioritization for Indian travel patterns
+
+#### ✅ **Testing Indian Locations**
+
+Try typing these in the app:
+
+**Cities:**
+
+- Mumbai, Bombay, Delhi, Bangalore, Chennai, Kolkata
+
+**Airports:**
+
+- BOM, DEL, BLR, MAA, CCU (airport codes)
+- "Mumbai Airport", "Delhi Airport"
+
+**Popular Places:**
+
+- Gateway of India, India Gate, Taj Mahal, Red Fort
+
+```bash
+cd travel_wizards
+flutter run -d chrome
+```
+
+Navigate to "Plan Trip" and start typing in the Origin or Destination fields - you'll see free autocomplete suggestions!
+
+#### Usage Notes
+
+- **Rate Limiting**: Automatically limited to 1 request/second per Nominatim usage policy
+- **For Production**: Consider running your own Nominatim instance for unlimited requests
+- **Data Source**: OpenStreetMap community-contributed data (constantly updated)
+
+#### Advantages Over Google Places
+
+| Feature     | Nominatim (Current) | Google Places    |
+| ----------- | ------------------- | ---------------- |
+| Cost        | FREE                | Requires billing |
+| API Key     | Not needed          | Required         |
+| Setup       | Zero configuration  | Complex setup    |
+| Billing     | Never               | After free tier  |
+| Open Source | Yes                 | No               |
+
 2. **Google Translate API**
 
    - Enable Cloud Translation API in Google Cloud Console
@@ -148,6 +388,24 @@ A comprehensive Flutter application for AI-powered travel planning with real-tim
      ```env
      GOOGLE_TRANSLATE_API_KEY=your-translate-api-key
      ```
+
+### BigQuery Setup
+
+The app streams analytics and trip-feedback events into a time-partitioned BigQuery table. Provision the dataset and service account with the included automation script (requires the Google Cloud SDK):
+
+```bash
+cd travel_wizards/scripts/data
+./setup_bigquery.sh -p <your-gcp-project> --key-output ~/.config/travel_wizards/bq-writer.json
+```
+
+The script performs the following:
+
+- Creates (or reuses) the `travel_wizards` dataset in the chosen region (`us-central1` by default).
+- Provisions a partitioned `trip_events` table using `created_at` as the partition key with schema defined in `scripts/data/schemas/trip_events_schema.json`.
+- Creates a dedicated service account (`travel-wizards-bq-writer`) with `roles/bigquery.dataEditor` and `roles/bigquery.jobUser` permissions.
+- Optionally generates a JSON key (store securely outside of version control; the example above writes to `~/.config/travel_wizards/bq-writer.json`).
+
+After generating a key, expose it to the app via environment configuration (for example `BIGQUERY_SERVICE_ACCOUNT_KEY_PATH`) so the backend ingestion layer can authenticate when writing analytics batches.
 
 ### Payment Setup (Stripe)
 

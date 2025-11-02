@@ -1,0 +1,30 @@
+// Firebase Messaging Service Worker Template
+// Replace API key and configuration with your actual Firebase project details
+
+importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey: "YOUR_WEB_API_KEY",
+  authDomain: "your-project-id.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.firebasestorage.app",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_WEB_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID"
+});
+
+const messaging = firebase.messaging();
+
+// Optional: Handle background messages
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/firebase-logo.png'
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});

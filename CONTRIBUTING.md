@@ -7,7 +7,7 @@ This repository hosts both the **Web Application** and the **Android Application
 
 ## 📂 Repository Structure
 
-```
+```tree
 root/
 │── web/         # Web application code
 │── android/     # Android application code
@@ -53,11 +53,11 @@ We follow a **3-level branching model**:
 
 We follow the **Conventional Commits** format:
 
-```
+```md
 <type>(scope): short description
 ```
 
-### Types:
+### Types
 
 * `feat` → new feature
 * `fix` → bug fix
@@ -67,9 +67,9 @@ We follow the **Conventional Commits** format:
 * `test` → adding/updating tests
 * `chore` → maintenance tasks
 
-### Examples:
+### Examples
 
-```
+```md
 feat(auth): add Google login integration
 fix(api): handle null response in trip planner API
 docs(readme): update contribution guidelines
@@ -165,13 +165,14 @@ docs(readme): update contribution guidelines
    git tag -a v1.0.0 -m "First stable release"
    git push origin v1.0.0
    ```
+
 3. CI/CD will auto-deploy based on tags.
 
 ---
 
 ## 🧾 Example GitHub Workflow
 
-```
+```md
 main (stable)  ← release from develop
 develop        ← integrates all features
 feature/*      ← per feature/task

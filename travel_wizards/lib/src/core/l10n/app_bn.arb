@@ -1,0 +1,213 @@
+{
+  "@@locale": "bn",
+  "appTitle": "ট্রাভেল উইজার্ডস",
+  "searchPlaceholder": "ট্রাভেল উইজার্ডস",
+  "menu": "মেনু",
+  "open": "খুলুন",
+  "explore": "এক্সপ্লোর",
+  "home": "হোম",
+  "settings": "সেটিংস",
+  "generationInProgress": "জেনারেশন প্রগ্রেসে",
+  "ongoingTrips": "চলমান ভ্রমণ",
+  "plannedTrips": "পরিকল্পিত ভ্রমণ",
+  "suggestedTrips": "প্রস্তাবিত ভ্রমণ",
+  "addTrip": "ভ্রমণ যোগ করুন",
+  "themeMode": "থিম মোড",
+  "language": "ভাষা",
+  "systemDefault": "সিস্টেম ডিফল্ট",
+  "light": "লাইট",
+  "dark": "ডার্ক",
+  "resultsFor": "এর ফলাফল",
+  "languageSelectionIntro": "অ্যাপের জন্য আপনার পছন্দের ভাষা বেছে নিন। দেশীয় ভারতীয় ভাষাগুলি স্থানীয়ভাবে উপলব্ধ, অন্যগুলি সঙ্গে সঙ্গেই Google Translate থেকে অনুবাদ হয়।",
+  "languageSearchHint": "ভাষা অনুসন্ধান করুন",
+  "languageEmptyState": "আপনার অনুসন্ধানের সঙ্গে এখনও কোনো ভাষা মেলেনি।",
+  "languageSetupMessage": "{languageName} সেটআপ করা হচ্ছে...",
+  "@languageSetupMessage": {
+    "placeholders": {
+      "languageName": {
+        "type": "String",
+        "example": "Spanish"
+      }
+    }
+  },
+  "languageChangedNative": "ভাষা {languageName} এ পরিবর্তিত হয়েছে",
+  "@languageChangedNative": {
+    "placeholders": {
+      "languageName": {
+        "type": "String",
+        "example": "বাংলা"
+      }
+    }
+  },
+  "languageChangedTranslated": "ভাষা {languageName} এ পরিবর্তিত হয়েছে (Google Translate)",
+  "@languageChangedTranslated": {
+    "placeholders": {
+      "languageName": {
+        "type": "String",
+        "example": "Spanish"
+      }
+    }
+  },
+  "done": "সম্পন্ন",
+  "languageManageTitle": "অ্যাপের ভাষা সর্বত্র নিয়ন্ত্রণ করুন",
+  "languageManageDescription": "Settings → Language থেকে আপনার পছন্দের ভাষা বেছে নিন, আমরা সেটি সর্বত্র প্রয়োগ করব।",
+  "languageManageCta": "ভাষা সেটিংস খুলুন",
+  "filters": "ফিল্টার",
+  "clearFilters": "ফিল্টার মুছুন",
+  "tagWeekend": "সপ্তাহান্ত",
+  "tagAdventure": "রোমাঞ্চ",
+  "tagBudget": "বাজেট",
+  "budgetLow": "কম বাজেট",
+  "budgetMedium": "মাঝারি বাজেট",
+  "budgetHigh": "উচ্চ বাজেট",
+  "duration2to3": "২–৩ দিন",
+  "duration4to5": "৪–৫ দিন",
+  "duration6plus": "৬+ দিন",
+  "save": "সেভ করুন",
+  "unsave": "সেভ বাতিল",
+  "saveIdea": "আইডিয়া সেভ করুন",
+  "unsaveIdea": "আইডিয়া সেভ বাতিল",
+  "savedToYourIdeas": "আপনার আইডিয়াতে সেভ হয়েছে",
+  "removedFromYourIdeas": "আপনার আইডিয়া থেকে সরানো হয়েছে",
+  "idea": "আইডিয়া",
+  "ideaLabel": "আইডিয়া: {title}",
+  "@ideaLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Weekend in Hampi"
+      }
+    }
+  },
+  "ideasFallbackToLocal": "নেটওয়ার্ক সমস্যা: স্থানীয় আইডিয়া দেখানো হচ্ছে",
+  "retry": "পুনরায় চেষ্টা করুন",
+  "profileOfflineTitle": "অফলাইনে মোড",
+  "profileOfflineDescription": "আপনি পুনরায় সংযুক্ত হলেই আমরা আপনার পরিবর্তন সিঙ্ক করব। নিশ্চিন্তে সম্পাদনা চালিয়ে যান।",
+  "profileDiscardEditsLabel": "সম্পাদনা বাতিল করুন",
+  "profileAccountBasicsTitle": "অ্যাকাউন্টের প্রাথমিক তথ্য",
+  "profileAccountBasicsSubtitle": "এই তথ্যগুলো ব্যক্তিগতকৃত প্রস্তাব ও ভাগ করা ভ্রমণ অভিজ্ঞতাকে সমৃদ্ধ করে।",
+  "profileFullNameLabel": "পূর্ণ নাম",
+  "profileUsernameLabel": "ব্যবহারকারীর নাম",
+  "profileUsernameHelper": "পাবলিক শেয়ার লিঙ্ক ও কনসিয়ার্জ সহায়তার জন্য ব্যবহৃত",
+  "profileEmailLabel": "ইমেল",
+  "profileGenderLabel": "লিঙ্গ",
+  "profileGenderOptionPreferNot": "বলতে অনিচ্ছুক",
+  "profileGenderOptionMale": "পুরুষ",
+  "profileGenderOptionFemale": "মহিলা",
+  "profileGenderOptionOther": "অন্যান্য",
+  "profileDobLabel": "জন্মতারিখ",
+  "profileDobHint": "YYYY-MM-DD",
+  "profileDobFormatError": "দয়া করে YYYY-MM-DD বিন্যাস ব্যবহার করুন",
+  "profileGoogleManagedNotice": "এই তথ্যগুলো আপনার Google অ্যাকাউন্ট থেকে এসেছে। আপডেট প্রয়োজন হলে support@travelwizards.com এ ইমেল করুন।",
+  "profileHomeTitle": "আপনার ঘর কোথায়",
+  "profileHomeSubtitle": "আপনার প্রিয় গন্তব্য অনুযায়ী আবহাওয়া সতর্কতা ও কনসিয়ার্জ টিপস আমরা সাজিয়ে দেব।",
+  "profileCountryLabel": "দেশ",
+  "profileStateLabel": "রাজ্য / অঞ্চল",
+  "profileCityLabel": "শহর",
+  "profileTasteTitle": "রুচি ও যত্ন",
+  "profileTasteSubtitle": "আপনি যেসব খাবার পছন্দ করেন তা দেখাতে এবং যেগুলো এড়ানো উচিত সেগুলো বাদ দিতে আমরা এটি ব্যবহার করি।",
+  "profileFoodPrefsLabel": "খাবারের পছন্দ",
+  "profileFoodPrefsHelper": "কমা দিয়ে আলাদা করুন (যেমন ভেগান, বাদাম-মুক্ত, ফার্ম-টু-টেবিল)",
+  "profileAllergiesLabel": "এলার্জি / নোট",
+  "profilePhotoSectionTitle": "প্রোফাইল ছবি",
+  "profilePhotoGuidance": "সেরা ফলের জন্য উচ্চ মানের বর্গাকার ছবি ব্যবহার করুন।",
+  "profileUploadPhotoButton": "নতুন ছবি আপলোড করুন",
+  "profileUseGooglePhotoButton": "Google ছবিটি ব্যবহার করুন",
+  "profileRemovePhotoButton": "ছবি সরান",
+  "profileOfflinePhotoWarning": "আপনি অফলাইনে আছেন। নতুন ছবি আপলোড করতে সংযোগ করুন।",
+  "profilePhotoManagedNotice": "Google সাইন-ইনের জন্য প্রোফাইল ছবি আপনার Google অ্যাকাউন্ট থেকেই আপডেট করতে হবে। আমরা পরিবর্তন স্বয়ংক্রিয়ভাবে আনব।",
+  "profileDiscardChangesLabel": "পরিবর্তন বাতিল করুন",
+  "profileLastSavedAtLabel": "শেষবার {time} এ সেভ হয়েছে",
+  "@profileLastSavedAtLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2:45 PM"
+      }
+    }
+  },
+  "profileCacheMessage": "আপনার প্রোফাইল অফলাইন অ্যাক্সেসের জন্য সংরক্ষিত আছে এবং আপনি পুনরায় সংযুক্ত হলেই সিঙ্ক হবে।",
+  "profileSaveTooltipPending": "প্রোফাইল আপডেট সেভ করুন",
+  "profileSaveTooltipSaved": "সব পরিবর্তন সেভ হয়েছে",
+  "profilePageTitle": "প্রোফাইল",
+  "profileBackdropDefaultName": "আপনার প্রোফাইল",
+  "profileManagedByGoogleBadge": "Google দ্বারা পরিচালিত",
+  "profileOfflineBadge": "অফলাইন",
+  "profileSignedInToUploadError": "আপলোড করতে লগ ইন থাকা প্রয়োজন।",
+  "profileReconnectToUploadError": "নতুন ছবি আপলোড করতে পুনরায় সংযোগ করুন।",
+  "profileReadFileError": "নির্বাচিত ফাইলটি পড়া যায়নি।",
+  "profileFileTooLargeError": "৫ এমবি-র কম সাইজের ছবি নির্বাচন করুন।",
+  "profilePhotoUpdatedMessage": "ছবি আপডেট হয়েছে। পরিবর্তন স্বয়ংক্রিয়ভাবে সেভ হবে।",
+  "profilePhotoUploadFailedMessage": "ছবি আপলোড ব্যর্থ: {error}",
+  "@profilePhotoUploadFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  },
+  "profileSignedInToSaveError": "সেভ করতে লগ ইন থাকা প্রয়োজন।",
+  "profileFixHighlightedFieldsError": "অনুগ্রহ করে হাইলাইট করা ঘরগুলো ঠিক করুন।",
+  "profileSyncSuccessMessage": "প্রোফাইল আপনার সব ডিভাইসে সিঙ্ক হয়েছে।",
+  "profileSyncOfflineMessage": "এখন অফলাইনে। আপনি সংযুক্ত হলেই প্রোফাইল সিঙ্ক করব।",
+  "profileAutoSaveFailedMessage": "অটো-সেভ ব্যর্থ: {error}",
+  "@profileAutoSaveFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Timeout"
+      }
+    }
+  },
+  "profileSaveFailedMessage": "প্রোফাইল সেভ করা যায়নি: {error}",
+  "@profileSaveFailedMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Permission denied"
+      }
+    }
+  },
+  "profileRevertedChangesMessage": "অসম্পাদিত পরিবর্তন ফিরিয়ে নেওয়া হয়েছে।",
+  "profileFieldRequired": "{fieldName} আবশ্যক",
+  "@profileFieldRequired": {
+    "placeholders": {
+      "fieldName": {
+        "type": "String",
+        "example": "Full name"
+      }
+    }
+  },
+  "profileUsernameTooShort": "কমপক্ষে ৩ টি অক্ষর",
+  "profileUsernameInvalid": "শুধু অক্ষর, সংখ্যা, আন্ডারস্কোর বা ডট ব্যবহার করা যাবে",
+  "profileEmailInvalid": "বৈধ ইমেল ঠিকানা লিখুন",
+  "skip": "এড়িয়ে যান",
+  "stepProgress": "ধাপ {current} এর মধ্যে {total}",
+  "@stepProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "1"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "welcomeToTravelWizards": "Travel Wizards-এ স্বাগতম!",
+  "personalizeExperience": "চলুন আপনার পছন্দের ভিত্তিতে ভ্রমণ অভিজ্ঞতা ব্যক্তিগত করি।",
+  "aiPoweredTripPlanning": "এআই ভিত্তিক ভ্রমণ পরিকল্পনা",
+  "personalizedRecommendations": "ব্যক্তিগতকৃত সুপারিশ",
+  "collaborativeTripPlanning": "সমষ্টিগত ভ্রমণ পরিকল্পনা",
+  "errorCompletingOnboarding": "অনবোর্ডিং সম্পূর্ণ করতে ত্রুটি: {error}",
+  "@errorCompletingOnboarding": {
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "Network error"
+      }
+    }
+  }
+}

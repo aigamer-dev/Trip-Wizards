@@ -12,6 +12,8 @@
 .env.*
 !.env.example
 !.env.template
+credentials.json
+**/credentials.json
 **/google-services.json
 **/GoogleService-Info.plist
 **/api_keys.dart
@@ -138,3 +140,8 @@ app.*.symbols
 firebase-messaging-sw.js
 index.html
 firebase.json
+
+# MCP Configuration and Testing Files
+MCP_*.md
+mcp-config.json
+ToDo.md

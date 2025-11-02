@@ -1,0 +1,308 @@
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'encryption_service.dart';
+import 'adk_api_service.dart';
+
+class ChatMessage {
+  final String id;
+  final String senderId;
+  final String senderName;
+  final String message;
+  final DateTime timestamp;
+  final bool isAiResponse;
+  final List<String> mentions;
+  final bool isEncrypted;
+  final Map<String, dynamic>? encryptedData;
+
+  ChatMessage({
+    required this.id,
+    required this.senderId,
+    required this.senderName,
+    required this.message,
+    required this.timestamp,
+    this.isAiResponse = false,
+    this.mentions = const [],
+    this.isEncrypted = false,
+    this.encryptedData,
+  });
+
+  factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final isEncrypted = data['isEncrypted'] ?? false;
+
+    String displayMessage = data['message'] ?? '';
+
+    // Try to decrypt if encrypted
+    if (isEncrypted && data['encryptedData'] != null) {
+      try {
+        final encryptedDataMap = data['encryptedData'] as Map<String, dynamic>;
+        displayMessage = '[Encrypted message - decrypting...]';
+        // Actual decryption happens asynchronously
+        EncryptionService.instance
+            .decryptMessage(encryptedDataMap)
+            .then((decrypted) {
+              displayMessage = decrypted;
+            })
+            .catchError((e) {
+              displayMessage = '[Unable to decrypt]';
+            });
+      } catch (e) {
+        displayMessage = '[Decryption error]';
+      }
+    }
+
+    return ChatMessage(
+      id: doc.id,
+      senderId: data['senderId'] ?? '',
+      senderName: data['senderName'] ?? 'Unknown',
+      message: displayMessage,
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isAiResponse: data['isAiResponse'] ?? false,
+      mentions: List<String>.from(data['mentions'] ?? []),
+      isEncrypted: isEncrypted,
+      encryptedData: data['encryptedData'] as Map<String, dynamic>?,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    final map = <String, dynamic>{
+      'senderId': senderId,
+      'senderName': senderName,
+      'timestamp': FieldValue.serverTimestamp(),
+      'isAiResponse': isAiResponse,
+      'mentions': mentions,
+      'isEncrypted': isEncrypted,
+    };
+
+    if (isEncrypted && encryptedData != null) {
+      map['encryptedData'] = encryptedData;
+      map['message'] = '[Encrypted]'; // Placeholder
+    } else {
+      map['message'] = message;
+    }
+
+    return map;
+  }
+}
+
+class GroupChatService {
+  GroupChatService._();
+  static final GroupChatService instance = GroupChatService._();
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  /// Get the chat collection reference for a trip
+  /// Chat is stored in users/{ownerId}/trips/{tripId}/chat
+  CollectionReference<Map<String, dynamic>> _getChatCollection(
+    String tripId,
+    String ownerId,
+  ) {
+    return _firestore
+        .collection('users')
+        .doc(ownerId)
+        .collection('trips')
+        .doc(tripId)
+        .collection('chat');
+  }
+
+  /// Get trip owner ID from the trip document
+  Future<String?> getTripOwnerId(String tripId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    // Check if trip belongs to current user
+    final userTripDoc = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('trips')
+        .doc(tripId)
+        .get();
+
+    if (userTripDoc.exists) {
+      return user.uid;
+    }
+
+    // If not, check if it's shared with current user
+    // This requires querying all users' trips (not efficient, will improve later)
+    // For now, return current user as fallback
+    return user.uid;
+  }
+
+  Stream<List<ChatMessage>> getChatMessages(String tripId) async* {
+    final ownerId = await getTripOwnerId(tripId);
+    if (ownerId == null) {
+      yield [];
+      return;
+    }
+
+    yield* _getChatCollection(tripId, ownerId)
+        .orderBy('timestamp')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ChatMessage.fromFirestore(doc))
+              .toList(),
+        );
+  }
+
+  Future<void> sendMessage({
+    required String tripId,
+    required String message,
+    bool isAiResponse = false,
+    bool enableEncryption = true,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final ownerId = await getTripOwnerId(tripId);
+    if (ownerId == null) return;
+
+    final mentions = _extractMentions(message);
+    final shouldTriggerAi =
+        mentions.contains('@ai') || mentions.contains('@wizard');
+
+    // Get trip buddies for encryption
+    final buddies = await getTripBuddies(tripId, ownerId);
+    Map<String, dynamic>? encryptedData;
+    bool isEncrypted = false;
+
+    // Encrypt message if enabled and there are buddies
+    if (enableEncryption && buddies.isNotEmpty) {
+      try {
+        encryptedData = await EncryptionService.instance.encryptMessage(
+          message,
+          buddies,
+        );
+        isEncrypted = true;
+      } catch (e) {
+        if (kDebugMode) {
+          print('Encryption failed, sending unencrypted: $e');
+        }
+        // Fall back to unencrypted if encryption fails
+        isEncrypted = false;
+      }
+    }
+
+    final chatMessage = ChatMessage(
+      id: '',
+      senderId: user.uid,
+      senderName: user.displayName ?? 'User',
+      message: message,
+      timestamp: DateTime.now(),
+      isAiResponse: isAiResponse,
+      mentions: mentions,
+      isEncrypted: isEncrypted,
+      encryptedData: encryptedData,
+    );
+
+    await _getChatCollection(tripId, ownerId).add(chatMessage.toMap());
+
+    if (shouldTriggerAi && !isAiResponse) {
+      await _generateAiResponse(tripId, ownerId, message);
+    }
+  }
+
+  Future<void> _generateAiResponse(
+    String tripId,
+    String ownerId,
+    String userMessage,
+  ) async {
+    DocumentReference? typingIndicatorRef;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final userId = user?.uid ?? 'anonymous';
+
+      // Add typing indicator message
+      typingIndicatorRef = await _getChatCollection(tripId, ownerId).add({
+        'senderId': 'ai',
+        'senderName': 'Travel Wizard AI',
+        'message': '✨ AI is thinking...',
+        'timestamp': FieldValue.serverTimestamp(),
+        'isAiResponse': true,
+        'isTyping': true,
+        'mentions': [],
+        'isEncrypted': false,
+      });
+
+      // Call the ADK API service
+      final response = await AdkApiService().generateResponse(
+        tripId: tripId,
+        message: userMessage,
+        userId: userId,
+      );
+
+      // Remove typing indicator
+      await typingIndicatorRef.delete();
+
+      // Parse response body to extract the AI response text
+      final responseBody = response.trim();
+
+      debugPrint('\n\n\nResponse Body: $responseBody\n---\n\n');
+      final lastEvent = responseBody.split('\n').last;
+      debugPrint('\n\n\nLast event: $lastEvent\n\n\n');
+
+      final jsonResponse = jsonDecode(lastEvent.split('data: ').last);
+      final agentResponseText = jsonResponse['content']['parts'][0]['text'];
+
+      // Add actual response
+      await _getChatCollection(tripId, ownerId).add({
+        'senderId': 'ai',
+        'senderName': 'Travel Wizard AI',
+        'message': agentResponseText,
+        'timestamp': FieldValue.serverTimestamp(),
+        'isAiResponse': true,
+        'mentions': [],
+        'isEncrypted': false,
+      });
+    } catch (e) {
+      debugPrint('Error generating AI response: $e');
+
+      // Remove typing indicator
+      try {
+        await typingIndicatorRef?.delete();
+      } catch (deleteError) {
+        debugPrint('Error deleting typing indicator: $deleteError');
+      }
+
+      // Send fallback error message
+      await _getChatCollection(tripId, ownerId).add({
+        'senderId': 'ai',
+        'senderName': 'Travel Wizard AI',
+        'message':
+            'I apologize, but I\'m having trouble connecting to the AI service. Please try again in a moment.',
+        'timestamp': FieldValue.serverTimestamp(),
+        'isAiResponse': true,
+        'mentions': [],
+        'isEncrypted': false,
+      });
+    }
+  }
+
+  List<String> _extractMentions(String message) {
+    final regex = RegExp(r'@(\w+)');
+    final matches = regex.allMatches(message);
+    return matches.map((match) => match.group(0)!).toList();
+  }
+
+  Future<List<String>> getTripBuddies(String tripId, String ownerId) async {
+    try {
+      final tripDoc = await _firestore
+          .collection('users')
+          .doc(ownerId)
+          .collection('trips')
+          .doc(tripId)
+          .get();
+      if (tripDoc.exists) {
+        final data = tripDoc.data();
+        final buddies = data?['buddies'] as List<dynamic>?;
+        return buddies?.map((e) => e.toString()).toList() ?? [];
+      }
+    } catch (e) {
+      debugPrint('Error getting trip buddies: $e');
+    }
+    return [];
+  }
+}
