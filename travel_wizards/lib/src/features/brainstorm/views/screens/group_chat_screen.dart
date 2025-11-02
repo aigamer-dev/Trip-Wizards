@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:travel_wizards/src/shared/services/group_chat_service.dart';
 import 'package:travel_wizards/src/shared/widgets/layout/modern_page_scaffold.dart';
 import 'package:travel_wizards/src/features/brainstorm/views/widgets/decrypted_message_widget.dart';
@@ -37,13 +38,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _loadBuddies() async {
-    final buddies = await GroupChatService.instance.getTripBuddies(
-      widget.tripId,
-    );
-    if (mounted) {
-      setState(() {
-        _buddies = buddies;
-      });
+    try {
+      // Get owner ID first
+      final ownerId = await GroupChatService.instance.getTripOwnerId(
+        widget.tripId,
+      );
+      if (ownerId == null) return;
+
+      final buddies = await GroupChatService.instance.getTripBuddies(
+        widget.tripId,
+        ownerId,
+      );
+      if (mounted) {
+        setState(() {
+          _buddies = buddies;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading buddies: $e');
     }
   }
 
@@ -57,19 +69,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
 
     _messageController.clear();
-    _scrollToBottom();
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
   }
 
   @override
@@ -120,6 +119,41 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
                 final messages = snapshot.data ?? [];
 
+                // Auto-scroll behaviour: since the ListView is reversed (newest messages
+                // are at index 0), we scroll to offset 0 to show the latest message.
+                // However, avoid auto-scrolling when the user has manually scrolled up
+                // (i.e. offset is larger than a small threshold) so they can read
+                // earlier messages without being pulled back.
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  try {
+                    if (!_scrollController.hasClients) return;
+
+                    // Consider the user at "bottom" when offset is near 0.
+                    const autoScrollThreshold = 200.0;
+                    final isNearBottom =
+                        _scrollController.position.maxScrollExtent >=
+                        autoScrollThreshold;
+                    debugPrint(
+                      'Scroll offset: ${_scrollController.offset}, '
+                      'Scroll End: ${_scrollController.position.maxScrollExtent}, '
+                      'isNearBottom: $isNearBottom',
+                    );
+                    if (isNearBottom) {
+                      // Jump to 0 (the newest message) immediately without animation
+                      // to avoid interrupting quick streams. Use animate for smoother UX
+                      // only when not the very first frame.
+                      _scrollController.animateTo(
+                        _scrollController.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  } catch (e) {
+                    // Scroll may throw if controller detached; ignore safely
+                    debugPrint('Auto-scroll failed: $e');
+                  }
+                });
+
                 if (messages.isEmpty) {
                   return Center(
                     child: Column(
@@ -149,16 +183,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   );
                 }
 
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _scrollToBottom();
-                });
-
                 return ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 80, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 200, 16, 16),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
+                    debugPrint(
+                      'Rendering message: ${message.message} at index $index',
+                    );
                     return _buildMessageBubble(message, colorScheme, theme);
                   },
                 );
@@ -176,14 +209,35 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     ColorScheme colorScheme,
     ThemeData theme,
   ) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isCurrentUser =
+        currentUser != null && message.senderId == currentUser.uid;
     final isAi = message.isAiResponse;
-    final alignment = isAi ? Alignment.centerLeft : Alignment.centerRight;
-    final bubbleColor = isAi
+
+    // WhatsApp-style alignment: current user right, others (including AI) left
+    final alignment = isCurrentUser
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
+
+    final bubbleColor = isCurrentUser
+        ? colorScheme.primaryContainer
+        : isAi
         ? colorScheme.tertiaryContainer
-        : colorScheme.primaryContainer;
-    final textColor = isAi
+        : colorScheme.surfaceContainerHighest;
+
+    final textColor = isCurrentUser
+        ? colorScheme.onPrimaryContainer
+        : isAi
         ? colorScheme.onTertiaryContainer
-        : colorScheme.onPrimaryContainer;
+        : colorScheme.onSurface;
+
+    // Display name logic
+    String displayName;
+    if (isAi) {
+      displayName = 'Trip Wizards';
+    } else {
+      displayName = message.senderName;
+    }
 
     return Align(
       alignment: alignment,
@@ -191,30 +245,33 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         constraints: const BoxConstraints(maxWidth: 500),
         margin: const EdgeInsets.only(bottom: 12),
         child: Column(
-          crossAxisAlignment: isAi
-              ? CrossAxisAlignment.start
-              : CrossAxisAlignment.end,
+          crossAxisAlignment: isCurrentUser
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isAi)
-                  Icon(
-                    Icons.auto_awesome,
-                    size: 16,
-                    color: colorScheme.tertiary,
+            // Only show name for non-current user messages
+            if (!isCurrentUser) ...[
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isAi)
+                    Icon(
+                      Icons.auto_awesome,
+                      size: 16,
+                      color: colorScheme.tertiary,
+                    ),
+                  if (isAi) const SizedBox(width: 4),
+                  Text(
+                    displayName,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                if (isAi) const SizedBox(width: 4),
-                Text(
-                  message.senderName,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
@@ -222,8 +279,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
-                  bottomLeft: Radius.circular(isAi ? 4 : 16),
-                  bottomRight: Radius.circular(isAi ? 16 : 4),
+                  bottomLeft: Radius.circular(isCurrentUser ? 16 : 4),
+                  bottomRight: Radius.circular(isCurrentUser ? 4 : 16),
                 ),
               ),
               child: DecryptedMessageWidget(
@@ -235,7 +292,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             Text(
               DateFormat('HH:mm').format(message.timestamp),
               style: theme.textTheme.labelSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+                color: colorScheme.onSurfaceVariant.withAlpha(153),
               ),
             ),
           ],
@@ -251,7 +308,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.1),
+            color: colorScheme.shadow.withAlpha(25),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),

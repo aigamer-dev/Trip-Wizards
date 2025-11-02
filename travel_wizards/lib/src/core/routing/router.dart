@@ -7,6 +7,8 @@ import 'package:travel_wizards/src/core/routing/nav_shell.dart';
 import 'package:travel_wizards/src/core/routing/transitions.dart';
 import 'package:travel_wizards/src/features/authentication/views/screens/email_login_screen.dart';
 import 'package:travel_wizards/src/features/authentication/views/screens/login_landing_screen.dart';
+import 'package:travel_wizards/src/features/agent/views/screens/travel_agent_chat_screen.dart';
+import 'package:travel_wizards/src/features/trip_planning/views/screens/adk_trip_generation_screen.dart';
 import 'package:travel_wizards/src/features/bookings/views/screens/booking_details_screen.dart';
 import 'package:travel_wizards/src/features/bookings/views/screens/enhanced_bookings_screen.dart';
 import 'package:travel_wizards/src/features/brainstorm/views/screens/brainstorm_screen.dart';
@@ -22,9 +24,14 @@ import 'package:travel_wizards/src/features/onboarding/views/screens/enhanced_on
 import 'package:travel_wizards/src/features/payments/views/screens/budget_screen.dart';
 import 'package:travel_wizards/src/features/payments/views/screens/expenses_screen.dart';
 import 'package:travel_wizards/src/features/payments/views/screens/payment_history_screen.dart';
+import 'package:travel_wizards/src/features/settings/views/screens/appearance/appearance_settings_screen.dart';
+import 'package:travel_wizards/src/features/settings/views/screens/language/language_settings_screen.dart';
 import 'package:travel_wizards/src/features/settings/views/screens/payments/payment_options_screen.dart';
+import 'package:travel_wizards/src/features/settings/views/screens/privacy/privacy_settings_screen.dart';
+import 'package:travel_wizards/src/features/settings/views/screens/sync_backup_screen.dart';
 import 'package:travel_wizards/src/features/settings/views/screens/profile/profile_screen.dart';
 import 'package:travel_wizards/src/features/settings/views/screens/settings_screen.dart';
+import 'package:travel_wizards/src/features/settings/views/screens/subscription/subscription_settings_screen.dart';
 import 'package:travel_wizards/src/features/settings/views/screens/tickets/tickets_screen.dart';
 import 'package:travel_wizards/src/features/social/views/screens/social_features_screen.dart';
 import 'package:travel_wizards/src/features/social/views/screens/travel_buddies_screen.dart';
@@ -148,6 +155,40 @@ GoRouter _buildRouter() {
       ),
 
       GoRoute(
+        path: '/settings/appearance',
+        name: 'theme_settings',
+        pageBuilder: (context, state) =>
+            fadePage(const AppearanceSettingsScreen()),
+      ),
+      GoRoute(
+        path: '/settings/language',
+        name: 'language_settings',
+        pageBuilder: (context, state) =>
+            fadePage(const LanguageSettingsScreen()),
+      ),
+      GoRoute(
+        path: '/settings/notification',
+        name: 'notification_settings',
+        pageBuilder: (context, state) => fadePage(const NotificationsScreen()),
+      ),
+      GoRoute(
+        path: '/settings/privacy',
+        name: 'privacy_settings',
+        pageBuilder: (context, state) =>
+            fadePage(const PrivacySettingsScreen()),
+      ),
+      GoRoute(
+        path: '/settings/sync-backup',
+        name: 'sync_backup',
+        pageBuilder: (context, state) => fadePage(const SyncBackupScreen()),
+      ),
+      GoRoute(
+        path: '/settings/subscription',
+        name: 'subscription_settings',
+        pageBuilder: (context, state) =>
+            fadePage(const SubscriptionSettingsScreen()),
+      ),
+      GoRoute(
         path: '/settings/payments',
         name: 'payment_options',
         pageBuilder: (context, state) => fadePage(const PaymentOptionsScreen()),
@@ -157,6 +198,18 @@ GoRouter _buildRouter() {
         name: 'concierge',
         pageBuilder: (context, state) =>
             fadePage(const EnhancedConciergeChatScreen()),
+      ),
+      GoRoute(
+        path: '/agent',
+        name: 'travel_agent',
+        pageBuilder: (context, state) =>
+            fadePage(const TravelAgentChatScreen()),
+      ),
+      GoRoute(
+        path: '/adk-trip-generation',
+        name: 'adk_trip_generation',
+        pageBuilder: (context, state) =>
+            fadePage(const AdkTripGenerationScreen()),
       ),
       GoRoute(
         path: '/add-to-trip',
@@ -309,7 +362,7 @@ GoRouter _buildRouter() {
           ),
           GoRoute(
             path: '/settings',
-            name: 'settings_shell',
+            name: 'settings',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: SettingsScreen()),
           ),

@@ -86,7 +86,7 @@ class _DecryptedMessageWidgetState extends State<DecryptedMessageWidget> {
             child: Icon(
               Icons.lock,
               size: 14,
-              color: widget.style?.color?.withOpacity(0.7),
+              color: widget.style?.color?.withAlpha(178),
             ),
           ),
         Expanded(

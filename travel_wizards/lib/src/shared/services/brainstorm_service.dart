@@ -1,133 +1,124 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:uuid/uuid.dart';
+import 'package:travel_wizards/src/shared/services/travel_agent_service.dart';
 
+/// Service for brainstorm feature using Travel Agent ADK
 class BrainstormService {
   BrainstormService._();
   static final BrainstormService instance = BrainstormService._();
-  User? user = FirebaseAuth.instance.currentUser;
-  var uuid = Uuid();
-  String host = 'http://192.168.29.143:9000';
 
-  String sessionId = '';
+  final TravelAgentService _agentService = TravelAgentService();
   bool _initialized = false;
+  String? _sessionId;
 
+  /// Get the current session ID
+  String? get sessionId => _sessionId;
+
+  /// Get the current user
+  User? get user => FirebaseAuth.instance.currentUser;
+
+  /// Initialize the brainstorm session using ADK
   Future<void> initialize() async {
-    // Simulate initialization delay
-
     if (user == null) {
-      return Future.error('User not authenticated');
+      throw Exception('User not authenticated');
     }
 
-    final sessionId = uuid.v4();
-    final url = Uri.parse(
-      '$host/apps/travel_concierge/users/${user?.uid}/sessions/$sessionId',
-    );
-    final response = await http.post(url);
+    try {
+      // Set user ID for the agent service
+      _agentService.setUserId(user!.uid);
 
-    if (response.statusCode != 200) {
-      return Future.error(
-        'Failed to initialize BrainstormService: ${response.statusCode}',
-      );
+      // Check if ADK service is available
+      final available = await _agentService.isAvailable();
+      if (!available) {
+        throw Exception('Travel Agent ADK service is not available');
+      }
+
+      // Create a new session with the ADK agent
+      await _agentService.createSession();
+      _sessionId = _agentService.sessionId;
+      _initialized = true;
+
+      debugPrint('✓ Brainstorm session initialized: $_sessionId');
+    } catch (e) {
+      debugPrint('❌ Failed to initialize brainstorm: $e');
+      rethrow;
     }
-
-    this.sessionId = sessionId;
-    _initialized = true;
-
-    return;
   }
 
-  Future<List<String>> getActiveSessions() async {
-    if (user == null) {
-      return Future.error('User not authenticated');
-    }
+  /// Check if service is initialized
+  bool get isInitialized => _initialized;
 
-    final url = Uri.parse(
-      '$host/apps/travel_concierge/users/${user!.uid}/sessions',
-    );
-
-    final response = await http.get(url);
-    if (response.statusCode != 200) {
-      return Future.error(
-        'Failed to get active sessions: ${response.statusCode} - ${response.body}',
-      );
-    }
-
-    final responseBody = response.body;
-    return [responseBody];
-  }
-
-  Future<List<String>> getMessages() async {
-    if (user == null) {
-      return Future.error('User not authenticated');
-    }
-
-    final url = Uri.parse(
-      '$host/apps/travel_concierge/users/${user!.uid}/sessions/$sessionId',
-    );
-
-    final response = await http.get(url);
-    if (response.statusCode != 200) {
-      return Future.error(
-        'Failed to get messages: ${response.statusCode} - ${response.body}',
-      );
-    }
-
-    final responseBody = response.body;
-    return [responseBody];
-  }
-
+  /// Send a message and get a response from the ADK agent
   Future<String> send(String prompt) async {
-    if (!_initialized) {
-      return Future.error('BrainstormService not initialized');
-    }
-
-    if (user == null) {
-      return Future.error('User not authenticated');
-    }
-
-    final url = Uri.parse('$host/run_sse');
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json', 'crossDomain': 'true'},
-      body:
-          '''{
-        "appName": "travel_concierge",
-        "userId": "${user!.uid}",
-        "sessionId": "$sessionId",
-        "newMessage": {
-            "role": "user",
-            "parts": [
-                {
-                    "text": "$prompt"
-                } 
-              ]
-        },
-        "streaming": false,
-        "stateDelta": null
-      }''',
-    );
-
-    if (response.statusCode != 200) {
-      return Future.error(
-        'Failed to send message: ${response.statusCode} - ${response.body}',
+    if (!_initialized || _sessionId == null) {
+      throw Exception(
+        'Brainstorm service not initialized. Call initialize() first.',
       );
     }
 
-    // Parse response body to extract the AI response text
-    final responseBody = response.body.trim();
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
 
-    debugPrint('\n\n\nResponse Body: $responseBody\n---\n\n');
-    final lastEvent = responseBody.split('\n').last;
-    debugPrint('\n\n\nLast event: $lastEvent\n\n\n');
+    try {
+      debugPrint('📤 Sending brainstorm prompt: $prompt');
 
-    final jsonResponse = jsonDecode(lastEvent.split('data: ').last);
-    final agentResponseText = jsonResponse['content']['parts'][0]['text'];
+      // Send message via HTTP to ADK API
+      final eventResponse = await _agentService.sendMessage(prompt);
 
-    return agentResponseText;
+      // Extract text content from the event response
+      final content = eventResponse['content'] as Map?;
+      final parts = content?['parts'] as List? ?? [];
+
+      String responseText = '';
+      if (parts.isNotEmpty) {
+        final firstPart = parts.first as Map?;
+        responseText = (firstPart?['text'] ?? '') as String;
+      }
+
+      if (responseText.isNotEmpty) {
+        final preview = responseText.length > 100
+            ? responseText.substring(0, 100)
+            : responseText;
+        debugPrint('📥 Brainstorm response received: $preview...');
+      }
+      return responseText;
+    } catch (e) {
+      debugPrint('❌ Failed to send brainstorm message: $e');
+      rethrow;
+    }
+  }
+
+  /// Get session history
+  Future<List<Map<String, dynamic>>> getSessionHistory() async {
+    try {
+      final response = await _agentService.getSessionHistory();
+      return response;
+    } catch (e) {
+      debugPrint('❌ Failed to get session history: $e');
+      return [];
+    }
+  }
+
+  /// End the current session
+  Future<void> endSession() async {
+    if (_sessionId != null) {
+      try {
+        await _agentService.closeSession();
+        _sessionId = null;
+        _initialized = false;
+        debugPrint('✓ Brainstorm session ended');
+      } catch (e) {
+        debugPrint('❌ Failed to end session: $e');
+      }
+    }
+  }
+
+  /// Dispose resources
+  void dispose() {
+    _sessionId = null;
+    _initialized = false;
   }
 }

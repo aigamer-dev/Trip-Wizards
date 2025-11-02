@@ -32,13 +32,13 @@ class WebOptimizationService {
 
       _isInitialized = true;
       if (kDebugMode) {
-        print('WebOptimizationService initialized successfully');
-        print('Browser: ${_configuration.browserName}');
-        print('Capabilities: ${_configuration.capabilities.join(', ')}');
+        debugPrint('WebOptimizationService initialized successfully');
+        debugPrint('Browser: ${_configuration.browserName}');
+        debugPrint('Capabilities: ${_configuration.capabilities.join(', ')}');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error initializing WebOptimizationService: $e');
+        debugPrint('Error initializing WebOptimizationService: $e');
       }
     }
   }
@@ -134,7 +134,7 @@ class WebOptimizationService {
   void _monitorCoreWebVitals() {
     // This would integrate with web vitals library
     if (kDebugMode) {
-      print('Performance monitoring enabled');
+      debugPrint('Performance monitoring enabled');
     }
   }
 
@@ -157,12 +157,12 @@ class WebOptimizationService {
           'flutter_service_worker.js',
         );
         if (kDebugMode) {
-          print('Service Worker registered successfully');
+          debugPrint('Service Worker registered successfully');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Service Worker registration failed: $e');
+        debugPrint('Service Worker registration failed: $e');
       }
     }
   }
@@ -192,7 +192,7 @@ class WebOptimizationService {
     html.window.addEventListener('beforeinstallprompt', (event) {
       event.preventDefault();
       if (kDebugMode) {
-        print('PWA install prompt available');
+        debugPrint('PWA install prompt available');
       }
     });
   }
@@ -201,7 +201,9 @@ class WebOptimizationService {
   void _setupNotifications() {
     if (!html.Notification.supported) return;
     if (kDebugMode) {
-      print('Web notifications supported; permission will be requested later');
+      debugPrint(
+        'Web notifications supported; permission will be requested later',
+      );
     }
   }
 
@@ -235,11 +237,11 @@ class WebOptimizationService {
     try {
       final permission = await html.Notification.requestPermission();
       if (kDebugMode) {
-        print('Notification permission: $permission');
+        debugPrint('Notification permission: $permission');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Failed to request notification permission: $e');
+        debugPrint('Failed to request notification permission: $e');
       }
     }
   }
@@ -362,7 +364,7 @@ class WebOptimizationService {
   void _setupGoogleAnalytics() {
     // This would integrate with Google Analytics
     if (kDebugMode) {
-      print('Analytics configured');
+      debugPrint('Analytics configured');
     }
   }
 
@@ -370,7 +372,7 @@ class WebOptimizationService {
   void _setupWebVitalsTracking() {
     // This would integrate with web-vitals library
     if (kDebugMode) {
-      print('Web Vitals tracking enabled');
+      debugPrint('Web Vitals tracking enabled');
     }
   }
 
@@ -388,7 +390,7 @@ class WebOptimizationService {
     if (_configuration.supportsPWA) {
       // Trigger install prompt
       if (kDebugMode) {
-        print('Showing PWA install prompt');
+        debugPrint('Showing PWA install prompt');
       }
     }
   }

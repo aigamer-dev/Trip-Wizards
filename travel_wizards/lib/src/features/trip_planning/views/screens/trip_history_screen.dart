@@ -26,7 +26,7 @@ class TripHistoryScreen extends StatelessWidget {
                   message: 'Sign in to view your trip history.',
                 )
               : StreamBuilder<List<Trip>>(
-                  stream: TripsRepository.instance.watchTrips(),
+                  stream: TripsRepository.instance.watchAccessibleTrips(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());

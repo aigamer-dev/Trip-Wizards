@@ -24,6 +24,10 @@ class Trip {
   final TripVisibility visibility;
   final List<String> sharedWith;
   final bool isPublic;
+  
+  // Source tracking
+  /// 'calendar' if imported from device calendar, 'app' if created manually (default)
+  final String source;
 
   const Trip({
     required this.id,
@@ -36,6 +40,7 @@ class Trip {
     this.visibility = TripVisibility.private,
     this.sharedWith = const [],
     this.isPublic = false,
+    this.source = 'app',
   });
 
   Trip copyWith({
@@ -49,6 +54,7 @@ class Trip {
     TripVisibility? visibility,
     List<String>? sharedWith,
     bool? isPublic,
+    String? source,
   }) {
     return Trip(
       id: id ?? this.id,
@@ -61,6 +67,7 @@ class Trip {
       visibility: visibility ?? this.visibility,
       sharedWith: sharedWith ?? this.sharedWith,
       isPublic: isPublic ?? this.isPublic,
+      source: source ?? this.source,
     );
   }
 
@@ -76,6 +83,7 @@ class Trip {
       'visibility': visibility.name,
       'sharedWith': sharedWith,
       'isPublic': isPublic,
+      'source': source,
     };
   }
 
@@ -93,6 +101,7 @@ class Trip {
           ? List<String>.from(map['sharedWith'] as List<dynamic>)
           : const [],
       isPublic: map['isPublic'] as bool? ?? false,
+      source: map['source'] as String? ?? 'app',
     );
   }
 

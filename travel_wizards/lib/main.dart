@@ -138,9 +138,7 @@ Future<void> main() async {
       () async {
         FirebaseAuth.instance.useAuthEmulator(emulatorHost, 9099);
         FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, 9098);
-        debugPrint(
-          '✅ Connected to Firebase emulators at $emulatorHost (Auth:9099, Firestore:9098)',
-        );
+        // Logging removed for production
       },
       context: 'Firebase Emulator Connection',
       showUserError: false,
@@ -153,23 +151,19 @@ Future<void> main() async {
       () async {
         try {
           await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
-          debugPrint('✅ [main] Web auth persistence set to LOCAL');
+          // Logging removed for production
         } catch (e1) {
-          debugPrint(
-            '⚠️ [main] LOCAL persistence failed: $e1 (trying SESSION)',
-          );
+          // Logging removed for production
           try {
             await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
-            debugPrint('✅ [main] Web auth persistence set to SESSION');
+            // Logging removed for production
           } catch (e2) {
-            debugPrint(
-              '⚠️ [main] SESSION persistence failed: $e2 (falling back to NONE)',
-            );
+            // Logging removed for production
             try {
               await FirebaseAuth.instance.setPersistence(Persistence.NONE);
-              debugPrint('✅ [main] Web auth persistence set to NONE');
+              // Logging removed for production
             } catch (e3) {
-              debugPrint('🚨 [main] All persistence modes failed: $e3');
+              // Logging removed for production
             }
           }
         }
@@ -178,15 +172,13 @@ Future<void> main() async {
         try {
           final result = await FirebaseAuth.instance.getRedirectResult();
           if (result.user != null) {
-            debugPrint(
-              '🔁 [main] Redirect sign-in completed for uid=${result.user!.uid}',
-            );
+            // Logging removed for production
           } else {
-            debugPrint('ℹ️ [main] No pending redirect result');
+            // Logging removed for production
           }
         } catch (e) {
           // If there was no redirect or it failed, ignore here; errors are handled in UI.
-          debugPrint('⚠️ [main] getRedirectResult error: $e');
+          // Logging removed for production
         }
       },
       context: 'Web Auth Persistence & Redirect Finalization',

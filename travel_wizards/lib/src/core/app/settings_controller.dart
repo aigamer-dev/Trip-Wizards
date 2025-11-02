@@ -54,6 +54,7 @@ class AppSettings extends ChangeNotifier {
       case 'dark':
         _themeMode = ThemeMode.dark;
         break;
+      case 'system':
       default:
         _themeMode = ThemeMode.system;
     }

@@ -120,7 +120,7 @@ class GenerationService {
 
       if (kDebugMode) {
         // ignore: avoid_print
-        print('Generated trip with payload: $payload');
+        debugPrint('Generated trip with payload: $payload');
       }
     } catch (e) {
       _resolveJob(job.id, GenerationJobState.failed, message: e.toString());

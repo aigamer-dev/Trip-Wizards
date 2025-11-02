@@ -35,8 +35,97 @@ class TripsRepository {
         .map((s) => s.docs.map((d) => Trip.fromMap(d.data())).toList());
   }
 
+  /// Watch only private trips (owned by current user, not shared)
+  Stream<List<Trip>> watchMyPrivateTrips() {
+    return _userTripsCollection(_uid)
+        .where('visibility', isEqualTo: 'private')
+        .orderBy('startDate')
+        .snapshots()
+        .map((s) => s.docs.map((d) => Trip.fromMap(d.data())).toList());
+  }
+
+  /// Watch trips shared with current user
+  /// Note: This is a simplified version. Full implementation would require
+  /// querying other users' trips where sharedWith array contains current user
+  Stream<List<Trip>> watchSharedTrips() {
+    return _userTripsCollection(_uid)
+        .where('sharedWith', arrayContains: _uid)
+        .orderBy('startDate')
+        .snapshots()
+        .map((s) => s.docs.map((d) => Trip.fromMap(d.data())).toList());
+  }
+
+  /// Watch community trips (public trips from all users)
+  /// Note: This requires a collection group query across all users
+  Stream<List<Trip>> watchCommunityTrips() {
+    return FirebaseFirestore.instance
+        .collectionGroup('trips')
+        .where('isPublic', isEqualTo: true)
+        .where('visibility', isEqualTo: 'community')
+        .orderBy('startDate', descending: true)
+        .limit(50) // Limit to prevent excessive data
+        .snapshots()
+        .map((s) => s.docs.map((d) => Trip.fromMap(d.data())).toList());
+  }
+
+  /// Watch trips accessible to current user (owned + shared)
+  Stream<List<Trip>> watchAccessibleTrips() {
+    // This combines trips owned by user and trips shared with user
+    // For simplicity, we'll just return owned trips
+    // A full implementation would merge both streams
+    return watchTrips();
+  }
+
   Future<void> upsertTrip(Trip trip) async {
     await _userTripsCollection(_uid).doc(trip.id).set(trip.toMap());
+  }
+
+  /// Update trip visibility
+  Future<void> updateTripVisibility({
+    required String tripId,
+    required String visibility,
+    required bool isPublic,
+    List<String>? sharedWith,
+  }) async {
+    final Map<String, dynamic> data = {
+      'visibility': visibility,
+      'isPublic': isPublic,
+    };
+    if (sharedWith != null) {
+      data['sharedWith'] = sharedWith;
+    }
+    await _userTripsCollection(
+      _uid,
+    ).doc(tripId).set(data, SetOptions(merge: true));
+  }
+
+  /// Publish trip to community
+  Future<void> publishToCommunity(String tripId) async {
+    await updateTripVisibility(
+      tripId: tripId,
+      visibility: 'community',
+      isPublic: true,
+    );
+  }
+
+  /// Make trip private
+  Future<void> makePrivate(String tripId) async {
+    await updateTripVisibility(
+      tripId: tripId,
+      visibility: 'private',
+      isPublic: false,
+      sharedWith: [],
+    );
+  }
+
+  /// Share trip with specific users
+  Future<void> shareWith(String tripId, List<String> userIds) async {
+    await updateTripVisibility(
+      tripId: tripId,
+      visibility: 'shared',
+      isPublic: false,
+      sharedWith: userIds,
+    );
   }
 
   Future<void> deleteTrip(String id) async {

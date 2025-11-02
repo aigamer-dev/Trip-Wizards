@@ -173,7 +173,7 @@ class _AddToTripScreenState extends State<AddToTripScreen> {
             ),
           ),
         StreamBuilder<List<Trip>>(
-          stream: TripsRepository.instance.watchTrips(),
+          stream: TripsRepository.instance.watchAccessibleTrips(),
           builder: (context, AsyncSnapshot<List<Trip>> snapshot) {
             final trips = snapshot.data ?? const <Trip>[];
             final filtered = _query.isEmpty

@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.aigamer.travel_wizards"
+    namespace = "com.example.trip_wizards"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "dev.aigamer.travel_wizards"
+        applicationId = "com.example.trip_wizards"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
     minSdk = flutter.minSdkVersion
@@ -37,6 +37,19 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Disable minification to avoid authentication issues
+            // Firebase Auth and Google Sign-In work better without obfuscation
+            isMinifyEnabled = false
+            isShrinkResources = false
+            
+            // If you need to enable minification in future, uncomment below:
+            // isMinifyEnabled = true
+            // isShrinkResources = true
+            // proguardFiles(
+            //     getDefaultProguardFile("proguard-android-optimize.txt"),
+            //     "proguard-rules.pro"
+            // )
         }
     }
 }

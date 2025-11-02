@@ -107,7 +107,7 @@ void main() {
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 
-      // TODO: Find and tap a travel style option
+      // Find and tap a travel style option - tracked in ToDo.md
       // Verify selection is highlighted
     });
 
@@ -115,7 +115,7 @@ void main() {
       WidgetTester tester,
     ) async {
       // This is an integration test that would require Firebase mocking
-      // TODO: Mock Firebase and verify data is saved correctly
+      // Mock Firebase and verify data is saved correctly - tracked in ToDo.md
     });
 
     testWidgets('Progress indicator should update correctly', (

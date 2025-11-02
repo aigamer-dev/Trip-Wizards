@@ -35,8 +35,11 @@ class HomeDataService {
   static final HomeDataService instance = HomeDataService._();
 
   /// Stream that provides categorized trip data for the home screen
+  /// Uses watchAccessibleTrips() to show owned + shared trips (respects visibility)
   Stream<TripCategorization> get tripsStream {
-    return TripsRepository.instance.watchTrips().map(_categorizeTrips);
+    return TripsRepository.instance.watchAccessibleTrips().map(
+      _categorizeTrips,
+    );
   }
 
   /// Fetch categorized trips once

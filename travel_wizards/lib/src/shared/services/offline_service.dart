@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Service for managing offline functionality and data caching
 class OfflineService {
@@ -22,13 +24,50 @@ class OfflineService {
   final Map<String, Future<void> Function(Map<String, dynamic>)>
   _pendingActionProcessors = {};
 
+  // Connectivity listener
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+
   /// Initialize the offline service
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     _prefs = await SharedPreferences.getInstance();
     _isInitialized = true;
+
+    // Check initial connectivity status
+    try {
+      final results = await Connectivity().checkConnectivity();
+      if (results.isNotEmpty) {
+        _updateOnlineStatus(results.first);
+      }
+    } catch (e) {
+      debugPrint('Error checking initial connectivity: $e');
+    }
+
+    // Listen for connectivity changes
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      (List<ConnectivityResult> results) {
+        if (results.isNotEmpty) {
+          _updateOnlineStatus(results.first);
+        }
+      },
+      onError: (error) {
+        debugPrint('Connectivity listener error: $error');
+      },
+    );
+
     debugPrint('OfflineService initialized. Online: $_isOnline');
+  }
+
+  /// Update online status based on connectivity result
+  void _updateOnlineStatus(ConnectivityResult result) {
+    final isConnected = result != ConnectivityResult.none;
+    setOnlineStatus(isConnected);
+  }
+
+  /// Dispose connectivity listener
+  void dispose() {
+    _connectivitySubscription.cancel();
   }
 
   void registerPendingActionProcessor(
@@ -44,9 +83,15 @@ class OfflineService {
       final wasOnline = _isOnline;
       _isOnline = isOnline;
 
+      debugPrint(
+        '🌐 Network Status Changed: ${wasOnline ? "Online" : "Offline"} → ${_isOnline ? "Online" : "Offline"}',
+      );
+
       if (!wasOnline && _isOnline) {
+        debugPrint('✅ Connection RESTORED - starting sync');
         _onConnectionRestored();
       } else if (wasOnline && !_isOnline) {
+        debugPrint('❌ Connection LOST - entering offline mode');
         _onConnectionLost();
       }
     }

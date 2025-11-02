@@ -24,13 +24,31 @@ class DataPortabilityService {
       userData['profile'] = userDoc.data();
     }
 
-    // Export trips
-    final trips = await _firestore
+    // Export personal trips
+    final personalTrips = await _firestore
         .collection('users')
         .doc(uid)
         .collection('trips')
         .get();
-    userData['trips'] = trips.docs.map((d) => d.data()).toList();
+    userData['trips'] = personalTrips.docs.map((d) => d.data()).toList();
+
+    // Export collaborative trips where user is member/owner
+    final collaborativeTrips = await _firestore
+        .collection('collaborative_trips')
+        .where('members', arrayContains: uid)
+        .get();
+    userData['collaborative_trips'] = collaborativeTrips.docs
+        .map((d) => d.data())
+        .toList();
+
+    // Export trip invitations
+    final invitations = await _firestore
+        .collection('trip_invitations')
+        .where('inviteeEmail', isEqualTo: userDoc.data()?['email'] ?? '')
+        .get();
+    userData['trip_invitations'] = invitations.docs
+        .map((d) => d.data())
+        .toList();
 
     // Export preferences
     final prefs = await _firestore
@@ -108,7 +126,7 @@ class DataPortabilityService {
 
   /// Delete all user data (Firestore, Storage, local cache)
   Future<void> deleteUserData({required String uid}) async {
-    // Delete all subcollections
+    // Delete all subcollections under user profile
     final userRef = _firestore.collection('users').doc(uid);
     final collections = [
       'trips',
@@ -129,6 +147,40 @@ class DataPortabilityService {
     }
     // Delete user profile
     await userRef.delete();
+
+    // Delete collaborative trips where user is owner
+    final ownedTrips = await _firestore
+        .collection('collaborative_trips')
+        .where('ownerId', isEqualTo: uid)
+        .get();
+    for (final doc in ownedTrips.docs) {
+      await doc.reference.delete();
+    }
+
+    // Remove user from collaborative trips where they're a member
+    final memberTrips = await _firestore
+        .collection('collaborative_trips')
+        .where('members', arrayContains: uid)
+        .get();
+    for (final doc in memberTrips.docs) {
+      final data = doc.data();
+      final members = List<Map<String, dynamic>>.from(data['members'] ?? []);
+      members.removeWhere((m) => m['userId'] == uid);
+      await doc.reference.update({'members': members});
+    }
+
+    // Delete trip invitations for this user
+    final userEmail = (await _firestore.collection('users').doc(uid).get())
+        .data()?['email'];
+    if (userEmail != null) {
+      final invitations = await _firestore
+          .collection('trip_invitations')
+          .where('inviteeEmail', isEqualTo: userEmail)
+          .get();
+      for (final doc in invitations.docs) {
+        await doc.reference.delete();
+      }
+    }
 
     // Delete receipts from Storage
     final storageRef = _storage.ref().child('users/$uid/receipts');

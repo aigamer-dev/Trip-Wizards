@@ -124,6 +124,7 @@ class CalendarService {
         destinations: const <String>[],
         notes: e.description,
         ownerId: user?.uid ?? '',
+        source: 'calendar',
       );
       if (user != null) {
         try {

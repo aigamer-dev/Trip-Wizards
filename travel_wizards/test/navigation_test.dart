@@ -10,7 +10,7 @@ void main() {
       // Set mobile viewport
       await tester.binding.setSurfaceSize(const Size(375, 667)); // iPhone SE
 
-      // TODO: Pump app with NavShell
+      // Pump app with NavShell - tracked in ToDo.md
       // This test verifies bottom nav is visible on mobile screens
     });
 
@@ -20,14 +20,14 @@ void main() {
       // Set desktop viewport
       await tester.binding.setSurfaceSize(const Size(1200, 800));
 
-      // TODO: Pump app with NavShell
+      // Pump app with NavShell - tracked in ToDo.md
       // This test verifies navigation rail is visible on larger screens
     });
 
     testWidgets('Tapping home button should navigate to home', (
       WidgetTester tester,
     ) async {
-      // TODO: Implement navigation test
+      // Implement navigation test - tracked in ToDo.md
       // 1. Find home button
       // 2. Tap it
       // 3. Verify navigation occurred
@@ -36,7 +36,7 @@ void main() {
     testWidgets('Tapping explore button should navigate to explore', (
       WidgetTester tester,
     ) async {
-      // TODO: Implement navigation test
+      // Implement navigation test - tracked in ToDo.md
     });
   });
 

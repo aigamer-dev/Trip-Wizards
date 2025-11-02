@@ -26,11 +26,11 @@ class AndroidOptimizationService {
 
       _isInitialized = true;
       if (kDebugMode) {
-        print('AndroidOptimizationService initialized successfully');
+        debugPrint('AndroidOptimizationService initialized successfully');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error initializing AndroidOptimizationService: $e');
+        debugPrint('Error initializing AndroidOptimizationService: $e');
       }
     }
   }
@@ -56,7 +56,7 @@ class AndroidOptimizationService {
   Future<void> _configurePerformance() async {
     // Enable hardware acceleration hints
     if (kDebugMode) {
-      print('Android performance optimizations configured');
+      debugPrint('Android performance optimizations configured');
     }
   }
 
@@ -111,7 +111,7 @@ class AndroidOptimizationService {
     await lockPortrait();
 
     if (kDebugMode) {
-      print('Applied low-end device optimizations');
+      debugPrint('Applied low-end device optimizations');
     }
   }
 

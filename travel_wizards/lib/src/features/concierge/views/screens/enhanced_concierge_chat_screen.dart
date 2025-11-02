@@ -91,13 +91,13 @@ class _EnhancedConciergeChatScreenState
     final activeTrip = _conversationController.activeTrip;
 
     if (activeTrip != null) {
-      return "Hi! I'm your AI travel concierge. I see you have an active trip to ${activeTrip.destinations.join(', ')}. "
+      return "Hi! I'm Trip Wizards, your travel concierge. I see you have an active trip to ${activeTrip.destinations.join(', ')}. "
           "How can I help you today? I can assist with trains, flights, hotels, local recommendations, and more!";
     } else if (trips.isNotEmpty) {
-      return "Welcome back! I'm your AI travel concierge. I can see you have some trips planned. "
+      return "Welcome back! I'm Trip Wizards, your travel concierge. I can see you have some trips planned. "
           "How can I help you today? I can assist with transportation, accommodations, activities, and travel advice!";
     } else {
-      return "Hello! I'm your AI travel concierge, ready to help you plan your perfect trip. "
+      return "Hello! I'm Trip Wizards, ready to help you plan your perfect trip. "
           "Ask me about destinations, flights, trains, hotels, or anything travel-related!";
     }
   }
@@ -434,7 +434,7 @@ class _EnhancedConciergeChatScreenState
                           if (index ==
                               _conversationController.messages.length) {
                             return const TypingIndicator(
-                              userName: 'AI Assistant',
+                              userName: 'Trip Wizards',
                             );
                           }
 

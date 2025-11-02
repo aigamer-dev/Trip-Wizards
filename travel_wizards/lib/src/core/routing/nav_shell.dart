@@ -29,11 +29,13 @@ class _NavShellState extends State<NavShell> with NavigationAware {
   static bool showBackButton = true;
   // Breadcrumbs are currently unused; keep scaffold simple for hackathon build.
   late final SearchController _searchController;
+  late final GlobalKey<ScaffoldState> _scaffoldKey;
 
   @override
   void initState() {
     super.initState();
     _searchController = SearchController();
+    _scaffoldKey = GlobalKey<ScaffoldState>();
   }
 
   @override
@@ -357,6 +359,7 @@ class _NavShellState extends State<NavShell> with NavigationAware {
 
     // Mobile layout with AppBar
     return Scaffold(
+      key: _scaffoldKey,
       extendBody: true,
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.transparent,
@@ -383,12 +386,10 @@ class _NavShellState extends State<NavShell> with NavigationAware {
                 },
               )
             : isMobile && isRootRoute
-            ? Builder(
-                builder: (ctx) => IconButton(
-                  icon: const Icon(Icons.menu_rounded),
-                  onPressed: () => Scaffold.of(ctx).openDrawer(),
-                  tooltip: 'Open navigation',
-                ),
+            ? IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                tooltip: 'Open navigation',
               )
             : null,
         flexibleSpace: ClipRRect(
@@ -798,7 +799,7 @@ class _MobileDrawer extends StatelessWidget {
               title: const Text('Bookings'),
               onTap: () {
                 Navigator.of(context).pop();
-                context.pushNamed('bookings');
+                context.pushNamed('bookings_shell');
               },
             ),
             ListTile(
@@ -806,7 +807,7 @@ class _MobileDrawer extends StatelessWidget {
               title: const Text('Tickets'),
               onTap: () {
                 Navigator.of(context).pop();
-                context.pushNamed('tickets');
+                context.pushNamed('tickets_shell');
               },
             ),
             ListTile(
@@ -814,7 +815,7 @@ class _MobileDrawer extends StatelessWidget {
               title: const Text('Budget Tracker'),
               onTap: () {
                 Navigator.of(context).pop();
-                context.pushNamed('budget');
+                context.pushNamed('budget_shell');
               },
             ),
             ListTile(
@@ -822,7 +823,7 @@ class _MobileDrawer extends StatelessWidget {
               title: const Text('Full Trip History'),
               onTap: () {
                 Navigator.of(context).pop();
-                context.pushNamed('trip_history');
+                context.pushNamed('trip_history_shell');
               },
             ),
             ListTile(
@@ -830,7 +831,7 @@ class _MobileDrawer extends StatelessWidget {
               title: const Text('Drafts'),
               onTap: () {
                 Navigator.of(context).pop();
-                context.pushNamed('drafts');
+                context.pushNamed('drafts_shell');
               },
             ),
             ListTile(
@@ -838,7 +839,7 @@ class _MobileDrawer extends StatelessWidget {
               title: const Text('Payment History'),
               onTap: () {
                 Navigator.of(context).pop();
-                context.pushNamed('payment_history');
+                context.pushNamed('payment_history_shell');
               },
             ),
             const Divider(height: 8),
@@ -972,12 +973,24 @@ class _VerticalNavigationMenu extends StatelessWidget {
         for (final item in menuItems)
           _NavigationMenuItem(
             item: item,
-            isSelected:
-                currentPath.startsWith(item.path) ||
-                (item.path == '/' && currentPath == '/'),
+            isSelected: _isMenuItemSelected(item, currentPath),
           ),
       ],
     );
+  }
+
+  bool _isMenuItemSelected(_MenuItem item, String currentPath) {
+    // Home: only highlight for exact root
+    if (item.path == '/') {
+      return currentPath == '/' || currentPath == '/home';
+    }
+    // Settings: highlight for /settings and all subpages
+    if (item.path == '/settings') {
+      return currentPath.startsWith('/settings') ||
+          currentPath.startsWith('/profile');
+    }
+    // Other: highlight for exact path or subpages
+    return currentPath == item.path || currentPath.startsWith('${item.path}/');
   }
 }
 

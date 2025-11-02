@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:travel_wizards/src/shared/widgets/places_autocomplete_field.dart';
+import 'package:travel_wizards/src/shared/widgets/location_autocomplete_field.dart';
 import 'package:travel_wizards/src/shared/services/adk_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:travel_wizards/src/features/trip_planning/views/controllers/trip_planning_controller.dart';
 import 'package:travel_wizards/src/shared/widgets/spacing.dart';
 
@@ -30,6 +31,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
   late final TripPlanningController _controller;
   late final bool _ownsController;
   String? _validationError;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -117,7 +119,12 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
                     ),
                   ),
                 // Step content
-                Expanded(child: _buildStepContent(controller)),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    child: _buildStepContent(controller),
+                  ),
+                ),
                 // Navigation buttons
                 _buildNavigationButtons(controller),
               ],
@@ -131,20 +138,68 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
   Widget _buildStepIndicator(TripPlanningController controller) {
     final steps = TripPlanningStep.values;
     final currentIndex = steps.indexOf(controller.currentStep);
+    final progress = (currentIndex + 1) / steps.length;
 
     return Container(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
         children: [
-          for (var index = 0; index < steps.length; index++) ...[
-            _buildStepCircleWithSemantics(
-              stepNumber: index + 1,
-              step: steps[index],
-              isActive: index == currentIndex,
-              isCompleted: index < currentIndex,
+          // Progress percentage
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Step ${currentIndex + 1} of ${steps.length}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                '${(progress * 100).toInt()}% Complete',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const VGap(8),
+          // Animated progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              tween: Tween(begin: 0, end: progress),
+              builder: (context, value, child) {
+                return LinearProgressIndicator(
+                  value: value,
+                  minHeight: 6,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
+                  ),
+                );
+              },
             ),
-            if (index != steps.length - 1) _buildStepLine(),
-          ],
+          ),
+          const VGap(16),
+          // Step circles
+          Row(
+            children: [
+              for (var index = 0; index < steps.length; index++) ...[
+                _buildStepCircleWithSemantics(
+                  stepNumber: index + 1,
+                  step: steps[index],
+                  isActive: index == currentIndex,
+                  isCompleted: index < currentIndex,
+                ),
+                if (index != steps.length - 1) _buildStepLine(),
+              ],
+            ],
+          ),
         ],
       ),
     );
@@ -171,7 +226,9 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
   }
 
   Widget _buildStepCircle(int stepNumber, bool isActive) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
       width: 32,
       height: 32,
       decoration: BoxDecoration(
@@ -179,16 +236,26 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
         color: isActive
             ? Theme.of(context).colorScheme.primary
             : Theme.of(context).colorScheme.surfaceContainerHighest,
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: Theme.of(context).colorScheme.primary.withAlpha(153),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
       ),
       child: Center(
-        child: Text(
-          stepNumber.toString(),
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 300),
           style: TextStyle(
             color: isActive
                 ? Theme.of(context).colorScheme.onPrimary
                 : Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.bold,
           ),
+          child: Text(stepNumber.toString()),
         ),
       ),
     );
@@ -214,6 +281,36 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
   }
 
   Widget _buildStepContent(TripPlanningController controller) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      transitionBuilder: (child, animation) {
+        // Slide and fade transition
+        final offsetAnimation =
+            Tween<Offset>(
+              begin: const Offset(0.1, 0),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            );
+
+        final fadeAnimation = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOut,
+        );
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: FadeTransition(opacity: fadeAnimation, child: child),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey(controller.currentStep),
+        child: _buildCurrentStep(controller),
+      ),
+    );
+  }
+
+  Widget _buildCurrentStep(TripPlanningController controller) {
     switch (controller.currentStep) {
       case TripPlanningStep.style:
         return _buildStep1TripStyle(controller);
@@ -705,7 +802,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
           Expanded(
             child: FilledButton(
               onPressed: controller.currentStep == TripPlanningStep.review
-                  ? () => _handleGenerateTrip(context)
+                  ? () => _handleGenerateTrip(context, controller)
                   : () => _handleNextPressed(controller),
               child: Text(
                 controller.currentStep == TripPlanningStep.review
@@ -731,6 +828,12 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
           content: Text(validationError),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
+      );
+      // Smooth scroll to top for error visibility
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
       );
     } else {
       setState(() {
@@ -775,11 +878,10 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
     }
   }
 
-  void _handleGenerateTrip(BuildContext context) async {
-    final controller = Provider.of<TripPlanningController>(
-      context,
-      listen: false,
-    );
+  void _handleGenerateTrip(
+    BuildContext context,
+    TripPlanningController controller,
+  ) async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     // Validate all required fields before generating
@@ -797,53 +899,83 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
       return;
     }
 
-    // Show loading
-    scaffoldMessenger.showSnackBar(
-      const SnackBar(
-        content: Text('Generating your personalized trip itinerary...'),
-        duration: Duration(seconds: 2),
-      ),
+    // Show enhanced loading dialog
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _GeneratingTripDialog(),
     );
 
     try {
       // Get current user
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
+        if (context.mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+        }
         scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('Please sign in to generate trips')),
         );
         return;
       }
 
-      // Create ADK session
-      final sessionData = await AdkService.instance.createSession(
-        userId: user.uid,
-        sessionId: 'trip_planning_${DateTime.now().millisecondsSinceEpoch}',
-      );
+      String? tripId;
+      bool usedAdk = false;
 
-      final sessionId = sessionData['sessionId'] as String;
+      // Try to use ADK service if available
+      try {
+        final backendAvailable = AdkService.instance.backendBaseUrl != null;
 
-      // Build trip planning message for the ADK planning agent
-      final tripMessage = _buildTripPlanningMessage(controller);
+        if (backendAvailable) {
+          // Create ADK session
+          final sessionData = await AdkService.instance.createSession(
+            userId: user.uid,
+            sessionId: 'trip_planning_${DateTime.now().millisecondsSinceEpoch}',
+          );
 
-      // Stream responses from ADK
-      final responses = <String>[];
-      await for (final chunk in AdkService.instance.runSse(
-        userId: user.uid,
-        sessionId: sessionId,
-        text: tripMessage,
-      )) {
-        responses.add(chunk);
-        debugPrint('ADK Response: $chunk');
+          final sessionId = sessionData['sessionId'] as String;
+
+          // Build trip planning message for the ADK planning agent
+          final tripMessage = _buildTripPlanningMessage(controller);
+
+          // Stream responses from ADK
+          final responses = <String>[];
+          await for (final chunk in AdkService.instance.runSse(
+            userId: user.uid,
+            sessionId: sessionId,
+            text: tripMessage,
+          )) {
+            responses.add(chunk);
+            debugPrint('ADK Response: $chunk');
+          }
+
+          // Process the responses and generate trip with AI itinerary
+          tripId = await controller.generateTripFromAdkResponse(responses);
+          usedAdk = true;
+        } else {
+          throw Exception('Backend not configured');
+        }
+      } catch (adkError) {
+        debugPrint('ADK service unavailable, creating basic trip: $adkError');
+        // Fallback: Create basic trip without AI-generated itinerary
+        tripId = await controller.generateTrip();
+        usedAdk = false;
       }
 
-      // Process the responses and generate trip
-      final tripId = await controller.generateTripFromAdkResponse(responses);
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
 
       if (tripId != null) {
         scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('Trip itinerary generated successfully!'),
+          SnackBar(
+            content: Text(
+              usedAdk
+                  ? 'Trip with AI itinerary created successfully!'
+                  : 'Trip created successfully!',
+            ),
           ),
         );
 
@@ -854,14 +986,20 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
       } else {
         scaffoldMessenger.showSnackBar(
           const SnackBar(
-            content: Text('Failed to generate trip. Please try again.'),
+            content: Text('Failed to create trip. Please try again.'),
           ),
         );
       }
     } catch (e) {
-      debugPrint('Trip generation failed: $e');
+      debugPrint('Trip creation failed: $e');
+
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
       scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Trip generation failed: ${e.toString()}')),
+        SnackBar(content: Text('Trip creation failed: ${e.toString()}')),
       );
     }
   }
@@ -1008,28 +1146,52 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
       ),
       child: Column(
         children: [
-          // Origin
-          PlacesAutocompleteField(
+          // Origin (FREE - No API key needed!)
+          LocationAutocompleteField(
             controller: controller.originController,
             labelText: 'From (Origin)',
             hintText: 'Enter departure city',
             prefixIcon: const Icon(Icons.location_on),
-            onPlaceSelected: (place) {
-              // Handle place selection - could update controller with place details
-              controller.originController.text = place.description;
+            onPlaceSelected: (location) {
+              // Handle place selection with free OpenStreetMap data
+              controller.originController.text = location.description;
             },
           ),
           VGap(16),
-          // Destination
-          PlacesAutocompleteField(
-            controller: controller.destinationController,
-            labelText: 'To (Destination)',
-            hintText: 'Enter destination city',
-            prefixIcon: const Icon(Icons.flag),
-            onPlaceSelected: (place) {
-              // Handle place selection - could update controller with place details
-              controller.destinationController.text = place.description;
-            },
+          // Destination (FREE - No API key needed!)
+          Row(
+            children: [
+              Expanded(
+                child: LocationAutocompleteField(
+                  controller: controller.destinationController,
+                  labelText: 'To (Destination)',
+                  hintText: 'Enter destination city',
+                  prefixIcon: const Icon(Icons.flag),
+                  onPlaceSelected: (location) {
+                    // Handle place selection with free OpenStreetMap data
+                    controller.destinationController.text =
+                        location.description;
+                    // Automatically add to destinations list
+                    controller.addDestination(location.description);
+                    // Clear the input for next destination
+                    controller.destinationController.clear();
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  final destination = controller.destinationController.text
+                      .trim();
+                  if (destination.isNotEmpty) {
+                    controller.addDestination(destination);
+                    controller.destinationController.clear();
+                  }
+                },
+                icon: const Icon(Icons.add),
+                tooltip: 'Add destination',
+              ),
+            ],
           ),
           if (controller.destinations.isNotEmpty) ...[
             VGap(12),
@@ -1130,6 +1292,8 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
 
   Widget _buildBuddiesSection(TripPlanningController controller) {
     final theme = Theme.of(context);
+    final TextEditingController _buddySearchController =
+        TextEditingController();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1145,40 +1309,106 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
           Row(
             children: [
               Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Add travel buddy',
-                    hintText: 'Enter name or email',
-                    prefixIcon: const Icon(Icons.person_add),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onSubmitted: (value) {
-                    if (value.isNotEmpty &&
-                        !controller.buddies.contains(value)) {
-                      controller.addBuddy(value);
+                child: Autocomplete<Map<String, String>>(
+                  optionsBuilder: (TextEditingValue textEditingValue) async {
+                    if (textEditingValue.text.length < 2) {
+                      return const Iterable<Map<String, String>>.empty();
+                    }
+                    try {
+                      final querySnapshot = await FirebaseFirestore.instance
+                          .collection('users')
+                          .where(
+                            'email',
+                            isGreaterThanOrEqualTo: textEditingValue.text
+                                .toLowerCase(),
+                          )
+                          .where(
+                            'email',
+                            isLessThan:
+                                '${textEditingValue.text.toLowerCase()}z',
+                          )
+                          .limit(10)
+                          .get();
+
+                      return querySnapshot.docs
+                          .map(
+                            (doc) => {
+                              'email': doc.data()['email'] as String? ?? '',
+                              'name':
+                                  doc.data()['displayName'] as String? ?? '',
+                            },
+                          )
+                          .where((user) => user['email']!.isNotEmpty)
+                          .toList();
+                    } catch (e) {
+                      return const Iterable<Map<String, String>>.empty();
                     }
                   },
+                  displayStringForOption: (Map<String, String> option) =>
+                      option['name']!.isNotEmpty
+                      ? '${option['name']} (${option['email']})'
+                      : option['email']!,
+                  onSelected: (Map<String, String> selection) {
+                    final email = selection['email']!;
+                    if (!controller.buddies.contains(email)) {
+                      controller.addBuddy(email);
+                    }
+                    _buddySearchController.clear();
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onFieldSubmitted) {
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: InputDecoration(
+                            labelText: 'Add travel buddy',
+                            hintText: 'Start typing to search users...',
+                            helperText: 'Type at least 2 characters to search',
+                            prefixIcon: const Icon(Icons.person_add),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          onChanged: (value) {
+                            _buddySearchController.text = value;
+                          },
+                        );
+                      },
+                  optionsViewBuilder: (context, onSelected, options) {
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 4.0,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: options.length,
+                            itemBuilder: (context, index) {
+                              final option = options.elementAt(index);
+                              return ListTile(
+                                leading: const Icon(Icons.person),
+                                title: Text(
+                                  option['name']!.isNotEmpty
+                                      ? option['name']!
+                                      : option['email']!,
+                                ),
+                                subtitle: option['name']!.isNotEmpty
+                                    ? Text(option['email']!)
+                                    : null,
+                                onTap: () {
+                                  onSelected(option);
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              ),
-              HGap(12),
-              FilledButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text(
-                        'Sync your contacts in Settings to use this feature',
-                      ),
-                      action: SnackBarAction(
-                        label: 'Settings',
-                        onPressed: () => context.goNamed('settings_shell'),
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.contacts),
-                label: const Text('Contacts'),
               ),
             ],
           ),
@@ -1309,7 +1539,7 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
                         ? Icons.star
                         : Icons.star_border,
                     color: starRating <= (controller.starRating ?? 0)
-                        ? Colors.amber
+                        ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
                   ),
                 );
@@ -1726,5 +1956,126 @@ class _PlanTripScreenState extends State<PlanTripScreen> {
     parts.add('${controller.itineraryType.toLowerCase()} itinerary');
 
     return parts.join(' • ');
+  }
+}
+
+/// Enhanced loading dialog for trip generation
+class _GeneratingTripDialog extends StatefulWidget {
+  @override
+  State<_GeneratingTripDialog> createState() => _GeneratingTripDialogState();
+}
+
+class _GeneratingTripDialogState extends State<_GeneratingTripDialog>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  final List<String> _loadingMessages = [
+    'Analyzing your preferences...',
+    'Finding the best destinations...',
+    'Planning your itinerary...',
+    'Calculating optimal routes...',
+    'Adding local experiences...',
+    'Finalizing your perfect trip...',
+  ];
+
+  int _currentMessageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.95,
+      end: 1.05,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    // Cycle through messages
+    _cycleMessages();
+  }
+
+  void _cycleMessages() {
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex =
+              (_currentMessageIndex + 1) % _loadingMessages.length;
+        });
+        _cycleMessages();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Animated icon
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Icon(
+                  Icons.flight_takeoff_rounded,
+                  size: 80,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+            const VGap(24),
+            // Title
+            Text(
+              'Creating Your Trip',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const VGap(16),
+            // Animated message
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              child: Text(
+                _loadingMessages[_currentMessageIndex],
+                key: ValueKey(_currentMessageIndex),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const VGap(24),
+            // Progress indicator
+            SizedBox(
+              width: double.infinity,
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -54,14 +54,26 @@ class _BrainstormScreenState extends State<BrainstormScreen> {
       _controller.clear();
     });
     _scrollToBottom();
-    _messages.add('...');
-    BrainstormService.instance.send(text).then((resp) {
-      if (!mounted) return;
-      setState(() {
-        _messages.last = resp;
-      });
-      _scrollToBottom();
-    });
+    setState(() => _messages.add('...'));
+
+    BrainstormService.instance
+        .send(text)
+        .then((resp) {
+          if (!mounted) return;
+          setState(() {
+            _messages.last = resp;
+          });
+          _scrollToBottom();
+        })
+        .catchError((error) {
+          if (!mounted) return;
+          setState(() {
+            _messages.last = '❌ Error: $error';
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to get response: $error')),
+          );
+        });
   }
 
   void _scrollToBottom() {

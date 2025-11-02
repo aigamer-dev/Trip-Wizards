@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:travel_wizards/src/shared/widgets/async_builder.dart';
 import 'package:travel_wizards/src/core/l10n/app_localizations.dart';
 import 'package:travel_wizards/src/shared/models/trip.dart';
+import 'package:travel_wizards/src/shared/widgets/calendar_event_badge.dart';
 import 'package:travel_wizards/src/shared/services/home_data_service.dart';
 import 'package:travel_wizards/src/shared/widgets/layout/modern_page_scaffold.dart';
 import 'package:travel_wizards/src/shared/widgets/layout/modern_section.dart';
@@ -498,13 +499,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Trip? _selectSpotlightTrip(List<Trip> candidates, TripCategorization data) {
-    if (candidates.isEmpty) {
-      final historical = [...data.completedTrips, ...data.plannedTrips];
+    // Filter out unmarked calendar trips from candidates
+    final filtered = candidates
+        .where((t) => t.source != 'calendar')
+        .toList();
+    
+    if (filtered.isEmpty) {
+      final historical = [...data.completedTrips, ...data.plannedTrips]
+          .where((t) => t.source != 'calendar')
+          .toList();
       if (historical.isEmpty) return null;
       historical.sort((a, b) => b.endDate.compareTo(a.endDate));
       return historical.first;
     }
-    return candidates.first;
+    return filtered.first;
   }
 
   List<Trip> _filterRecommendations(List<Trip> candidates) {
@@ -1161,6 +1169,13 @@ class _TripRecommendationCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
+              if (trip.source == 'calendar')
+                ...[
+                  const CalendarEventBadge(
+                    fontSize: 12.0,
+                  ),
+                  const SizedBox(height: 8),
+                ],
               Text(
                 destination,
                 style: theme.textTheme.bodyMedium?.copyWith(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:travel_wizards/src/features/trip_planning/data/plan_trip_store.dart';
 import 'package:travel_wizards/src/shared/widgets/layout/modern_page_scaffold.dart';
@@ -85,6 +86,7 @@ class _DraftsScreenState extends State<DraftsScreen> {
                 budget: store.budget,
                 notes: store.notes,
                 onClear: _clearDraft,
+                onContinue: () => context.push('/plan'),
               );
             },
           ),
@@ -100,12 +102,14 @@ class _DraftCard extends StatelessWidget {
     this.budget,
     this.notes,
     required this.onClear,
+    required this.onContinue,
   });
 
   final int? duration;
   final String? budget;
   final String? notes;
   final VoidCallback onClear;
+  final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +166,15 @@ class _DraftCard extends StatelessWidget {
                 isMultiline: true,
               ),
             ],
+            const Divider(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onContinue,
+                icon: const Icon(Symbols.edit),
+                label: const Text('Continue Planning'),
+              ),
+            ),
           ],
         ),
       ),

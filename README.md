@@ -305,80 +305,79 @@ The app uses the [Travel-agent-ADK](https://github.com/karthik-r14/Travel-agent-
      # In travel_wizards/web/index.html, replace YOUR_GOOGLE_MAPS_API_KEY
      ```
 
-### Places Autocomplete — Manual Test Checklist
+### Location Autocomplete - FREE & Optimized for India
 
-Use this checklist to manually verify the Places Autocomplete feature on emulator or physical device. Do not commit API keys to source control.
+The app uses **enhanced location services** specifically optimized for Indian users - completely FREE with NO API keys or billing required!
 
-1. Create a Google Cloud API key
+#### 🇮🇳 **Enhanced Indian Location Support**
 
-- In Google Cloud Console, enable the following APIs:
-  - Places API
-  - Maps JavaScript API (for web)
-  - Maps SDK for Android (if using Android)
-- Create an API key and restrict it to the required APIs.
+- ✅ **Major Indian Cities**: Mumbai, Delhi, Bangalore, Chennai, Kolkata, Hyderabad, Pune, Ahmedabad, and more
+- ✅ **Airport Codes**: BOM, DEL, BLR, MAA, CCU, HYD, PNQ, AMD, GOI, JAI, COK, TRV, etc.
+- ✅ **City Variations**: Handles both Mumbai/Bombay, Chennai/Madras, Bangalore/Bengaluru, Kolkata/Calcutta
+- ✅ **Tourist Places**: Gateway of India, India Gate, Taj Mahal, Red Fort, Golden Temple, and popular landmarks
+- ✅ **Smart Prioritization**: Indian locations appear first in search results
 
-2. Restrict the API key for safety
+#### 🌐 **Powered by Multiple FREE Sources**
 
-- For Android: Restrict by package name and SHA-1 (recommended for production).
-- For Web: Restrict by HTTP referrers (your hosting domain or `localhost` for dev).
-- Keep a separate unrestricted dev key only if absolutely necessary and never commit it.
+- **OpenStreetMap Nominatim** - Global location data (FREE)
+- **Enhanced Indian Database** - Airport codes and popular destinations
+- **Smart Search Logic** - India-first prioritization for better user experience
 
-3. Provide the key to the app for local testing
+#### ⚡ **Key Features**
 
-- Preferred (safe): use `--dart-define` at build/run time:
+- ✅ **Completely FREE** - No billing, no credit card needed
+- ✅ **No API key required** - Works out of the box
+- ✅ **Real-time autocomplete** - Instant suggestions as you type
+- ✅ **Airport code support** - Type "BOM" to find Mumbai Airport
+- ✅ **City variations** - Search "Bombay" and find Mumbai
+- ✅ **Tourist destinations** - Find popular landmarks and attractions
 
-    ```bash
-    # Web (dev):
-    flutter run -d chrome --dart-define=PLACES_API_KEY=YOUR_KEY
+#### 🛠️ **Technical Implementation**
 
-    # Android (debug):
-    flutter run -d emulator-5554 --dart-define=PLACES_API_KEY=YOUR_KEY
+- Uses `IndianLocationService` in `lib/src/shared/services/indian_location_service.dart`
+- Falls back to `NominatimService` for global coverage
+- Automatically rate-limited to comply with usage policies
+- Smart result prioritization for Indian travel patterns
 
-    # Build web release with key:
-    flutter build web --dart-define=PLACES_API_KEY=YOUR_KEY
-    ```
+#### ✅ **Testing Indian Locations**
 
-- Or set environment variables and load them in `lib/main.dart` (local dev only).
-- Do NOT commit keys into source files.
+Try typing these in the app:
 
-4. Android manifest (optional local debug)
+**Cities:**
 
-- For native plugins that read `strings.xml`, you can add the key to `android/app/src/main/res/values/strings.xml` in your local copy (do not commit) and reference it in the manifest.
+- Mumbai, Bombay, Delhi, Bangalore, Chennai, Kolkata
 
-5. Test on emulator/device
+**Airports:**
 
-- Launch the app and open a screen with the Places Autocomplete input.
-- Type a place name (e.g., "Mumbai" or "MG Road") and confirm suggestions appear.
-- Tap a suggestion — verify the returned place has useful fields (place_id, name, lat/lng, formatted address).
-- Verify the app gracefully handles:
-  - No network (shows an inline message)
-  - API quota exceeded / invalid key (user-facing error and a log entry)
-  - Permission denied (location-based suggestions require location permission — handle gracefully)
+- BOM, DEL, BLR, MAA, CCU (airport codes)
+- "Mumbai Airport", "Delhi Airport"
 
-6. Web checks
+**Popular Places:**
 
-- If testing web, ensure Maps JS is loaded with the same key and the referrer restriction allows localhost or your test domain.
-- Test CORS and ensure JS console has no API key errors.
+- Gateway of India, India Gate, Taj Mahal, Red Fort
 
-7. Verification steps
+```bash
+cd travel_wizards
+flutter run -d chrome
+```
 
-- Verify that suggestions match expected region biasing (if configured).
-- Confirm lat/lng accuracy by opening the place marker on the map view (if present).
-- Confirm autocomplete latency is acceptable (<300ms median on local network) and that debouncing is applied while typing.
+Navigate to "Plan Trip" and start typing in the Origin or Destination fields - you'll see free autocomplete suggestions!
 
-8. Security & compliance notes
+#### Usage Notes
 
-- For production, restrict keys by platform and rotate keys if you suspect compromise.
-- For People API or additional sensitive scopes, ensure OAuth consent verification is completed before requesting scopes at scale.
+- **Rate Limiting**: Automatically limited to 1 request/second per Nominatim usage policy
+- **For Production**: Consider running your own Nominatim instance for unlimited requests
+- **Data Source**: OpenStreetMap community-contributed data (constantly updated)
 
-9. Troubleshooting
+#### Advantages Over Google Places
 
-- Common errors: `API key not authorized`, `RefererNotAllowedMapError`, `REQUEST_DENIED` — check key restrictions and enabled APIs.
-- If the emulator can't reach Google APIs, test with a physical device on the same network or check emulator network settings.
-
----
-
-This checklist is intentionally conservative for the hackathon—prefer sandboxing and mocked services for automated tests; run manual checks with real keys on a private dev environment only.
+| Feature     | Nominatim (Current) | Google Places    |
+| ----------- | ------------------- | ---------------- |
+| Cost        | FREE                | Requires billing |
+| API Key     | Not needed          | Required         |
+| Setup       | Zero configuration  | Complex setup    |
+| Billing     | Never               | After free tier  |
+| Open Source | Yes                 | No               |
 
 2. **Google Translate API**
 

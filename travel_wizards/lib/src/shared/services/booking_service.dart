@@ -56,14 +56,25 @@ class BookingService {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) throw StateError('Not signed in');
 
-    final tripsCol = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('trips');
+    final firestore = FirebaseFirestore.instance;
+    final tripsCol = firestore.collection('users').doc(uid).collection('trips');
     final tripRef = tripsCol.doc(tripId);
 
-    final tripSnap = await tripRef.get();
-    final trip = tripSnap.data() ?? <String, dynamic>{};
+    var tripSnap = await tripRef.get();
+    var trip = tripSnap.data() ?? <String, dynamic>{};
+
+    // If not found in user's trips, check collaborative_trips collection
+    if (!tripSnap.exists) {
+      final collaborativeTripRef = firestore
+          .collection('collaborative_trips')
+          .doc(tripId);
+      tripSnap = await collaborativeTripRef.get();
+      trip = tripSnap.data() ?? <String, dynamic>{};
+    }
+
+    if (trip.isEmpty) {
+      throw StateError('Trip not found: $tripId');
+    }
 
     // Determine nights for hotel price estimate
     int nights = 2;

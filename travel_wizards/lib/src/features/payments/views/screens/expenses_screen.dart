@@ -20,10 +20,171 @@ class ExpensesScreen extends StatefulWidget {
 class _ExpensesScreenState extends State<ExpensesScreen> {
   final _currencyFormat = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
 
+  void _showEditExpenseDialog(Expense expense) {
+    final descriptionController = TextEditingController(
+      text: expense.description,
+    );
+    final amountController = TextEditingController(
+      text: expense.amount.toString(),
+    );
+
+    final availableMembers = widget.tripBuddies.isNotEmpty
+        ? widget.tripBuddies
+        : ['You'];
+    final selectedMembers = <String>{...expense.splitAmong};
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Expense'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'e.g., Dinner at restaurant',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: amountController,
+                  decoration: const InputDecoration(
+                    labelText: 'Amount (₹)',
+                    border: OutlineInputBorder(),
+                    prefixText: '₹ ',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Split among:',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                ...availableMembers.map(
+                  (buddy) => CheckboxListTile(
+                    title: Text(buddy),
+                    value: selectedMembers.contains(buddy),
+                    onChanged: (value) {
+                      setState(() {
+                        if (value == true) {
+                          selectedMembers.add(buddy);
+                        } else {
+                          selectedMembers.remove(buddy);
+                        }
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (descriptionController.text.isEmpty ||
+                    amountController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please fill in all fields')),
+                  );
+                  return;
+                }
+
+                final amount = double.tryParse(amountController.text);
+                if (amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid amount'),
+                    ),
+                  );
+                  return;
+                }
+
+                if (selectedMembers.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Please select at least one person to split with',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                await PaymentSplitService.instance.updateExpense(
+                  tripId: widget.tripId,
+                  expenseId: expense.id,
+                  description: descriptionController.text,
+                  amount: amount,
+                  splitAmong: selectedMembers.toList(),
+                );
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Expense updated successfully'),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(Expense expense) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Expense'),
+        content: Text(
+          'Are you sure you want to delete "${expense.description}"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await PaymentSplitService.instance.deleteExpense(
+                tripId: widget.tripId,
+                expenseId: expense.id,
+              );
+
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Expense deleted')),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddExpenseDialog() {
     final descriptionController = TextEditingController();
     final amountController = TextEditingController();
-    
+
     // Get available members (either from tripBuddies or default to current user)
     final availableMembers = widget.tripBuddies.isNotEmpty
         ? widget.tripBuddies
@@ -101,9 +262,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 if (descriptionController.text.isEmpty ||
                     amountController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please fill in all fields'),
-                    ),
+                    const SnackBar(content: Text('Please fill in all fields')),
                   );
                   return;
                 }
@@ -133,9 +292,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Expense added successfully'),
-                    ),
+                    const SnackBar(content: Text('Expense added successfully')),
                   );
                 }
               },
@@ -357,12 +514,53 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                 subtitle: Text(
                   'Paid by ${expense.paidBy} • Split among ${expense.splitAmong.length}',
                 ),
-                trailing: Text(
-                  _currencyFormat.format(expense.amount),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _currencyFormat.format(expense.amount),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _showEditExpenseDialog(expense);
+                        } else if (value == 'delete') {
+                          _showDeleteConfirmation(expense);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text(
+                                'Delete',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),

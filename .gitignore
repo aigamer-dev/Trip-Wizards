@@ -12,6 +12,8 @@
 .env.*
 !.env.example
 !.env.template
+credentials.json
+**/credentials.json
 **/google-services.json
 **/GoogleService-Info.plist
 **/api_keys.dart

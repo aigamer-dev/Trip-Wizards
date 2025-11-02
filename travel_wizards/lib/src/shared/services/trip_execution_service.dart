@@ -21,12 +21,46 @@ class TripExecutionService {
 
   // Current active trip tracking
   String? _activeTripId;
+  String? _activeTripOwnerId;
   StreamSubscription<Position>? _locationSubscription;
   Timer? _periodicUpdateTimer;
+
+  /// Get trip owner ID
+  Future<String?> _getTripOwnerId(String tripId) async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final userTripDoc = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('trips')
+        .doc(tripId)
+        .get();
+
+    if (userTripDoc.exists) {
+      return user.uid;
+    }
+
+    return user.uid; // Fallback to current user
+  }
+
+  /// Get trip document reference
+  DocumentReference _getTripDoc(String tripId, String ownerId) {
+    return _firestore
+        .collection('users')
+        .doc(ownerId)
+        .collection('trips')
+        .doc(tripId);
+  }
 
   /// Start trip execution tracking
   Future<void> startTripExecution(String tripId) async {
     _activeTripId = tripId;
+    _activeTripOwnerId = await _getTripOwnerId(tripId);
+
+    if (_activeTripOwnerId == null) {
+      throw Exception('Could not determine trip owner');
+    }
 
     try {
       // Update trip status to active
@@ -59,6 +93,7 @@ class TripExecutionService {
 
       debugPrint('✅ Trip execution ended for trip: $_activeTripId');
       _activeTripId = null;
+      _activeTripOwnerId = null;
     } catch (e) {
       debugPrint('❌ Failed to end trip execution: $e');
     }
@@ -92,12 +127,14 @@ class TripExecutionService {
       );
 
       // Save check-in to Firestore
-      await _firestore
-          .collection('trips')
-          .doc(_activeTripId!)
-          .collection('check_ins')
-          .doc(checkIn.id)
-          .set(checkIn.toMap());
+      if (_activeTripOwnerId == null) {
+        throw Exception('No active trip owner');
+      }
+
+      await _getTripDoc(
+        _activeTripId!,
+        _activeTripOwnerId!,
+      ).collection('check_ins').doc(checkIn.id).set(checkIn.toMap());
 
       // Update activity status
       await _updateActivityStatus(activityId, ActivityStatus.completed);
@@ -135,12 +172,14 @@ class TripExecutionService {
       );
 
       // Save check-out to Firestore
-      await _firestore
-          .collection('trips')
-          .doc(_activeTripId!)
-          .collection('check_outs')
-          .doc(checkOut.id)
-          .set(checkOut.toMap());
+      if (_activeTripOwnerId == null) {
+        throw Exception('No active trip owner');
+      }
+
+      await _getTripDoc(
+        _activeTripId!,
+        _activeTripOwnerId!,
+      ).collection('check_outs').doc(checkOut.id).set(checkOut.toMap());
 
       debugPrint('📤 Check-out completed: Activity $activityId');
 
@@ -153,17 +192,14 @@ class TripExecutionService {
 
   /// Get current trip status and progress
   Future<TripExecutionStatus?> getCurrentTripStatus() async {
-    if (_activeTripId == null) return null;
+    if (_activeTripId == null || _activeTripOwnerId == null) return null;
 
     try {
-      final doc = await _firestore
-          .collection('trips')
-          .doc(_activeTripId!)
-          .get();
+      final doc = await _getTripDoc(_activeTripId!, _activeTripOwnerId!).get();
 
       if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        final statusStr = data['executionStatus'] as String?;
+        final data = doc.data() as Map<String, dynamic>?;
+        final statusStr = data?['executionStatus'] as String?;
         return TripExecutionStatus.values.firstWhere(
           (status) => status.name == statusStr,
           orElse: () => TripExecutionStatus.planned,
@@ -178,25 +214,19 @@ class TripExecutionService {
 
   /// Get trip progress (percentage completed)
   Future<double> getTripProgress() async {
-    if (_activeTripId == null) return 0.0;
+    if (_activeTripId == null || _activeTripOwnerId == null) return 0.0;
 
     try {
+      final tripDoc = _getTripDoc(_activeTripId!, _activeTripOwnerId!);
+
       // Get total activities
-      final activitiesSnapshot = await _firestore
-          .collection('trips')
-          .doc(_activeTripId!)
-          .collection('activities')
-          .get();
+      final activitiesSnapshot = await tripDoc.collection('activities').get();
 
       final totalActivities = activitiesSnapshot.docs.length;
       if (totalActivities == 0) return 0.0;
 
       // Get completed check-ins
-      final checkInsSnapshot = await _firestore
-          .collection('trips')
-          .doc(_activeTripId!)
-          .collection('check_ins')
-          .get();
+      final checkInsSnapshot = await tripDoc.collection('check_ins').get();
 
       final completedActivities = checkInsSnapshot.docs.length;
 
@@ -308,7 +338,9 @@ class TripExecutionService {
     String tripId,
     TripExecutionStatus status,
   ) async {
-    await _firestore.collection('trips').doc(tripId).update({
+    if (_activeTripOwnerId == null) return;
+
+    await _getTripDoc(tripId, _activeTripOwnerId!).update({
       'executionStatus': status.name,
       'lastUpdated': FieldValue.serverTimestamp(),
     });
@@ -318,17 +350,15 @@ class TripExecutionService {
     String activityId,
     ActivityStatus status,
   ) async {
-    if (_activeTripId == null) return;
+    if (_activeTripId == null || _activeTripOwnerId == null) return;
 
-    await _firestore
-        .collection('trips')
-        .doc(_activeTripId!)
-        .collection('activities')
-        .doc(activityId)
-        .update({
-          'status': status.name,
-          'lastUpdated': FieldValue.serverTimestamp(),
-        });
+    await _getTripDoc(
+      _activeTripId!,
+      _activeTripOwnerId!,
+    ).collection('activities').doc(activityId).update({
+      'status': status.name,
+      'lastUpdated': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<void> _startLocationTracking() async {

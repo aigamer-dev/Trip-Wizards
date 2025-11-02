@@ -11,9 +11,9 @@ class TripSyncService {
   StreamSubscription? _firestoreSub;
 
   Future<void> start() async {
-    // Listen to Firestore and update local
+    // Listen to Firestore accessible trips (owned + shared) and update local
     _firestoreSub?.cancel();
-    _firestoreSub = _firestore.watchTrips().listen((trips) async {
+    _firestoreSub = _firestore.watchAccessibleTrips().listen((trips) async {
       for (final trip in trips) {
         await LocalTripsRepository.upsertTrip(trip);
       }

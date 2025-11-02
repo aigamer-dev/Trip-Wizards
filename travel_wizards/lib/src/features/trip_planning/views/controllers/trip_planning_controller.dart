@@ -21,6 +21,9 @@ class TripPlanningController extends ChangeNotifier {
   // Step management
   TripPlanningStep _currentStep = TripPlanningStep.style;
 
+  // Trip being edited (if any)
+  String? _editingTripId;
+
   // Controllers
   final TextEditingController titleController = TextEditingController();
   final TextEditingController originController = TextEditingController();
@@ -105,6 +108,10 @@ class TripPlanningController extends ChangeNotifier {
   Set<String> get selectedActivities => Set.unmodifiable(_selectedActivities);
   String get itineraryType => _itineraryType;
 
+  // Editing state getter
+  String? get editingTripId => _editingTripId;
+  bool get isEditing => _editingTripId != null;
+
   /// Check if form has any non-default values
   bool get hasChanges =>
       titleController.text.trim().isNotEmpty ||
@@ -139,6 +146,8 @@ class TripPlanningController extends ChangeNotifier {
   Future<void> loadTripForEditing(String tripId) async {
     try {
       _isLoading = true;
+      // Set editing context
+      _editingTripId = tripId;
       notifyListeners();
 
       final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -211,6 +220,9 @@ class TripPlanningController extends ChangeNotifier {
 
           _notes = data['notes'] as String? ?? '';
           _dirty = false; // Not dirty since we just loaded
+
+          // Start at review step when editing
+          _currentStep = TripPlanningStep.review;
         }
       }
     } catch (e) {
@@ -240,6 +252,36 @@ class TripPlanningController extends ChangeNotifier {
       if (store.notes?.isNotEmpty == true) {
         _notes = store.notes!;
         notesController.text = store.notes!;
+      }
+      if (store.title?.isNotEmpty == true) {
+        titleController.text = store.title!;
+      }
+      if (store.origin?.isNotEmpty == true) {
+        originController.text = store.origin!;
+      }
+      if (store.destinations?.isNotEmpty == true) {
+        _destinations.clear();
+        _destinations.addAll(store.destinations!);
+      }
+      if (store.startDate != null && store.endDate != null) {
+        _dates = DateTimeRange(start: store.startDate!, end: store.endDate!);
+        _durationDays = _dates!.duration.inDays;
+      }
+      if (store.travelParty?.isNotEmpty == true) {
+        _travelParty = store.travelParty!;
+      }
+      if (store.pace?.isNotEmpty == true) {
+        _pace = store.pace!;
+      }
+      if (store.stayType?.isNotEmpty == true) {
+        _stayType = store.stayType!;
+      }
+      if (store.interests?.isNotEmpty == true) {
+        _interests.clear();
+        _interests.addAll(store.interests!);
+      }
+      if (store.preferSurface != null) {
+        _preferSurface = store.preferSurface!;
       }
 
       notifyListeners();
@@ -467,34 +509,55 @@ class TripPlanningController extends ChangeNotifier {
         throw Exception('User must be authenticated to create trips');
       }
 
-      // Create new trip
-      final newId = DateTime.now().millisecondsSinceEpoch.toString();
       final now = DateTime.now();
       final start = _dates?.start ?? now;
       final end = _dates?.end ?? now.add(Duration(days: (_durationDays ?? 3)));
 
-      final trip = Trip(
-        id: newId,
-        title: titleController.text.trim().isNotEmpty
-            ? titleController.text.trim()
-            : (fallbackTitle ?? 'New Trip'),
-        startDate: start,
-        endDate: end,
-        destinations: _destinations,
-        notes: _buildNotesString(),
-        ownerId: '', // Will be set by repository
-      );
+      final tripTitle = titleController.text.trim().isNotEmpty
+          ? titleController.text.trim()
+          : (fallbackTitle ?? 'New Trip');
+      final tripNotes = _buildNotesString();
 
-      await TripsRepository.instance.upsertTrip(trip);
+      String tripId;
 
-      if (_destinations.isNotEmpty) {
-        await TripsRepository.instance.addDestinations(newId, _destinations);
+      // Check if editing existing trip
+      if (_editingTripId != null) {
+        // UPDATE existing trip
+        tripId = _editingTripId!;
+        await TripsRepository.instance.updateMeta(
+          tripId,
+          start: start,
+          end: end,
+          title: tripTitle,
+          notes: tripNotes,
+        );
+      } else {
+        // CREATE new trip
+        final newId = DateTime.now().millisecondsSinceEpoch.toString();
+        tripId = newId;
+
+        final trip = Trip(
+          id: newId,
+          title: tripTitle,
+          startDate: start,
+          endDate: end,
+          destinations: _destinations,
+          notes: tripNotes,
+          ownerId: '', // Will be set by repository
+        );
+
+        await TripsRepository.instance.upsertTrip(trip);
       }
 
-      // Clear draft after successful creation
+      if (_destinations.isNotEmpty) {
+        await TripsRepository.instance.addDestinations(tripId, _destinations);
+      }
+
+      // Clear editing state and draft after successful save
+      _editingTripId = null;
       await _clearDraft();
 
-      return newId;
+      return tripId;
     } catch (e) {
       // Enhanced error logging
       debugPrint('Trip creation failed: $e');
@@ -521,6 +584,15 @@ class TripPlanningController extends ChangeNotifier {
             ? notesController.text.trim()
             : _notes.trim(),
       );
+      await store.setTitle(titleController.text.trim());
+      await store.setOrigin(originController.text.trim());
+      await store.setDestinations(_destinations);
+      await store.setDates(_dates?.start, _dates?.end);
+      await store.setTravelParty(_travelParty);
+      await store.setPace(_pace);
+      await store.setStayType(_stayType);
+      await store.setInterests(_interests.toList());
+      await store.setPreferSurface(_preferSurface);
 
       _dirty = false;
       notifyListeners();
@@ -781,8 +853,8 @@ class TripPlanningController extends ChangeNotifier {
       return 'Please enter an origin location';
     }
 
-    if (destinationController.text.trim().isEmpty) {
-      return 'Please enter a destination location';
+    if (_destinations.isEmpty) {
+      return 'Please add at least one destination';
     }
 
     if (_dates == null) {

@@ -100,20 +100,64 @@ class CollaborativeTripService {
         });
   }
 
-  /// Get a specific trip by ID
+  /// Get a specific trip by ID (checks both collaborative and personal trips)
   Future<CollaborativeTrip?> getTrip(String tripId) async {
+    final currentUserId = _currentUserId;
+    if (currentUserId == null) {
+      debugPrint('User not logged in, cannot get trip');
+      return null;
+    }
+
     try {
+      // First try collaborative_trips collection
       final doc = await _tripsCollection.doc(tripId).get();
-      if (!doc.exists) return null;
+      if (doc.exists) {
+        try {
+          final trip = CollaborativeTrip.fromFirestore(doc);
+          debugPrint('Trip found in collaborative_trips: ${trip.title}');
 
-      final trip = CollaborativeTrip.fromFirestore(doc);
-
-      // Check if current user has access
-      final currentUserId = _currentUserId;
-      if (currentUserId != null && trip.hasAccess(currentUserId)) {
-        return trip;
+          // Check if current user has access
+          if (trip.hasAccess(currentUserId)) {
+            return trip;
+          } else {
+            debugPrint('Access denied for user $currentUserId');
+            return null;
+          }
+        } catch (e) {
+          debugPrint('Error parsing trip from collaborative_trips: $e');
+        }
       }
 
+      // If not in collaborative_trips, try user's trips collection (backward compatibility)
+      final userTripDoc = await _usersCollection
+          .doc(currentUserId)
+          .collection('trips')
+          .doc(tripId)
+          .get();
+
+      if (userTripDoc.exists) {
+        debugPrint('Trip found in user collection: $tripId');
+        // Convert regular trip to collaborative trip for compatibility
+        final tripData = userTripDoc.data() ?? {};
+
+        final collaborativeTrip = CollaborativeTrip(
+          id: tripId,
+          title: tripData['title'] ?? 'Untitled Trip',
+          startDate: _parseDate(tripData['startDate'] as String?),
+          endDate: _parseDate(tripData['endDate'] as String?),
+          destinations: List<String>.from(tripData['destinations'] ?? []),
+          notes: tripData['notes'] as String?,
+          ownerId: currentUserId,
+          permissions: TripPermissions.defaultPermissions,
+          createdAt: _parseDate(tripData['createdAt'] as String?),
+          updatedAt: _parseDate(tripData['updatedAt'] as String?),
+          lastUpdatedBy: currentUserId,
+        );
+
+        return collaborativeTrip;
+      }
+
+      debugPrint('Trip not found in any collection: $tripId');
       return null;
     } catch (e) {
       debugPrint('Error getting trip: $e');
@@ -123,18 +167,80 @@ class CollaborativeTripService {
 
   /// Get real-time trip updates
   Stream<CollaborativeTrip?> getTripStream(String tripId) {
-    return _tripsCollection.doc(tripId).snapshots().map((doc) {
-      if (!doc.exists) return null;
+    final currentUserId = _currentUserId;
+    if (currentUserId == null) {
+      debugPrint('User not logged in, cannot get trip stream');
+      return Stream.value(null);
+    }
 
-      final trip = CollaborativeTrip.fromFirestore(doc);
-      final currentUserId = _currentUserId;
+    // First, try to get from collaborative_trips collection
+    return _tripsCollection.doc(tripId).snapshots().asyncMap((doc) async {
+      if (doc.exists) {
+        try {
+          final trip = CollaborativeTrip.fromFirestore(doc);
+          debugPrint('Trip loaded from collaborative_trips: ${trip.title}');
 
-      if (currentUserId != null && trip.hasAccess(currentUserId)) {
-        return trip;
+          if (trip.hasAccess(currentUserId)) {
+            return trip;
+          } else {
+            debugPrint(
+              'Access denied for user $currentUserId. Is owner: ${trip.isOwner(currentUserId)}, Is member: ${trip.isMember(currentUserId)}',
+            );
+            return null;
+          }
+        } catch (e) {
+          debugPrint('Error loading trip from collaborative_trips: $e');
+          return null;
+        }
       }
 
+      // If not in collaborative_trips, try user's trips collection (backward compatibility)
+      try {
+        final userTripDoc = await _usersCollection
+            .doc(currentUserId)
+            .collection('trips')
+            .doc(tripId)
+            .get();
+
+        if (userTripDoc.exists) {
+          debugPrint('Trip found in user collection: $tripId');
+          // Convert regular trip to collaborative trip for compatibility
+          final tripData = userTripDoc.data() ?? {};
+
+          // Create a basic collaborative trip from regular trip
+          final collaborativeTrip = CollaborativeTrip(
+            id: tripId,
+            title: tripData['title'] ?? 'Untitled Trip',
+            startDate: _parseDate(tripData['startDate'] as String?),
+            endDate: _parseDate(tripData['endDate'] as String?),
+            destinations: List<String>.from(tripData['destinations'] ?? []),
+            notes: tripData['notes'] as String?,
+            ownerId: currentUserId,
+            permissions: TripPermissions.defaultPermissions,
+            createdAt: _parseDate(tripData['createdAt'] as String?),
+            updatedAt: _parseDate(tripData['updatedAt'] as String?),
+            lastUpdatedBy: currentUserId,
+          );
+
+          return collaborativeTrip;
+        }
+      } catch (e) {
+        debugPrint('Error loading trip from user collection: $e');
+      }
+
+      debugPrint('Trip not found in any collection: $tripId');
       return null;
     });
+  }
+
+  /// Helper to parse date strings
+  DateTime _parseDate(String? dateStr) {
+    if (dateStr == null) return DateTime.now();
+    try {
+      return DateTime.parse(dateStr);
+    } catch (e) {
+      return DateTime.now();
+    }
   }
 
   /// Update trip details
@@ -171,7 +277,140 @@ class CollaborativeTripService {
     if (destinations != null) updates['destinations'] = destinations;
     if (notes != null) updates['notes'] = notes;
 
-    await _tripsCollection.doc(tripId).update(updates);
+    // Check if trip is in collaborative_trips or user's personal collection
+    final collaborativeTripExists = await _tripsCollection
+        .doc(tripId)
+        .get()
+        .then((doc) => doc.exists);
+
+    if (collaborativeTripExists) {
+      await _tripsCollection.doc(tripId).update(updates);
+    } else {
+      // Update in user's personal trips collection
+      await _usersCollection
+          .doc(currentUserId)
+          .collection('trips')
+          .doc(tripId)
+          .update(updates);
+    }
+  }
+
+  /// Directly add user as member to trip (no invitation needed)
+  Future<void> addMember({
+    required String tripId,
+    required String userEmail,
+    required TripRole role,
+  }) async {
+    final currentUserId = _currentUserId;
+    if (currentUserId == null) {
+      throw Exception('User must be logged in to add members');
+    }
+
+    final trip = await getTrip(tripId);
+    if (trip == null) {
+      throw Exception('Trip not found or access denied');
+    }
+
+    // Only owner or admin can add members
+    if (!trip.isOwner(currentUserId)) {
+      final currentMember = trip.getMember(currentUserId);
+      if (currentMember?.role != TripRole.admin) {
+        throw Exception('Insufficient permissions to add members');
+      }
+    }
+
+    // Check if user is already a member (case-insensitive)
+    if (trip.members.any((m) => m.email.toLowerCase() == userEmail.toLowerCase())) {
+      throw Exception('User is already a member of this trip');
+    }
+
+    // Get user details from Firestore with multiple fallback strategies
+    final normalizedEmail = userEmail.toLowerCase().trim();
+    Map<String, dynamic>? userData;
+    String? userId;
+
+    try {
+      // Strategy 1: Exact email match (case-insensitive by normalizing query)
+      var userQuery = await _usersCollection
+          .where('email', isEqualTo: normalizedEmail)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isNotEmpty) {
+        userId = userQuery.docs.first.id;
+        userData = (userQuery.docs.first.data() ?? {}) as Map<String, dynamic>;
+        debugPrint('✅ User found by normalized email: $normalizedEmail');
+      } else {
+        // Strategy 2: Try case-insensitive search (if email is stored differently)
+        // Get all users and filter client-side (less efficient but more reliable)
+        debugPrint('⚠️ Email not found with exact match, trying case-insensitive search...');
+        userQuery = await _usersCollection.limit(100).get();
+        
+        for (final doc in userQuery.docs) {
+          final docData = doc.data() as Map<String, dynamic>;
+          final storedEmail = (docData['email'] as String?)?.toLowerCase().trim();
+          
+          if (storedEmail == normalizedEmail) {
+            userId = doc.id;
+            userData = docData;
+            debugPrint('✅ User found by case-insensitive search: $normalizedEmail');
+            break;
+          }
+        }
+      }
+
+      if (userId == null || userData == null) {
+        // Strategy 3: Try searching by display name as fallback
+        debugPrint('⚠️ User not found by email, checking if user exists in system...');
+        throw Exception(
+          'User not found with email: $userEmail. '
+          'Please ensure the user has signed up and logged in at least once.'
+        );
+      }
+    } catch (e) {
+      if (e.toString().contains('User not found')) {
+        rethrow;
+      }
+      debugPrint('❌ Error searching for user: $e');
+      throw Exception('Error finding user: $e');
+    }
+
+    // Create new member with normalized email
+    final newMember = TripMember(
+      userId: userId,
+      email: normalizedEmail, // Store normalized email
+      displayName: userData['name'] as String? ?? userData['displayName'] as String?,
+      photoUrl: userData['photoUrl'] as String? ?? userData['photoURL'] as String?,
+      role: role,
+      joinedAt: DateTime.now(),
+    );
+
+    // Check if trip is in collaborative_trips collection
+    final collaborativeTripExists = await _tripsCollection
+        .doc(tripId)
+        .get()
+        .then((doc) => doc.exists);
+
+    if (collaborativeTripExists) {
+      await _tripsCollection.doc(tripId).update({
+        'members': FieldValue.arrayUnion([newMember.toMap()]),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'lastUpdatedBy': currentUserId,
+      });
+      debugPrint('✅ Member added to collaborative trip: $userEmail');
+    } else {
+      // Update in user's personal trips collection
+      await _usersCollection
+          .doc(currentUserId)
+          .collection('trips')
+          .doc(tripId)
+          .update({
+            'members': FieldValue.arrayUnion([newMember.toMap()]),
+            'updatedAt': DateTime.now().toIso8601String(),
+            'lastUpdatedBy': currentUserId,
+          });
+      debugPrint('✅ Member added to personal trip: $userEmail');
+    }
   }
 
   /// Invite user to trip
@@ -195,15 +434,18 @@ class CollaborativeTripService {
       throw Exception('User does not have invite permissions');
     }
 
-    // Check if user is already a member
-    if (trip.members.any((m) => m.email == inviteeEmail)) {
+    // Normalize email for consistency
+    final normalizedInviteeEmail = inviteeEmail.toLowerCase().trim();
+
+    // Check if user is already a member (case-insensitive)
+    if (trip.members.any((m) => m.email.toLowerCase() == normalizedInviteeEmail)) {
       throw Exception('User is already a member of this trip');
     }
 
-    // Check if there's already a pending invitation
+    // Check if there's already a pending invitation (case-insensitive)
     final existingInvitations = await _invitationsCollection
         .where('tripId', isEqualTo: tripId)
-        .where('inviteeEmail', isEqualTo: inviteeEmail)
+        .where('inviteeEmail', isEqualTo: normalizedInviteeEmail)
         .where('status', isEqualTo: InvitationStatus.pending.name)
         .get();
 
@@ -216,7 +458,7 @@ class CollaborativeTripService {
       id: invitationId,
       tripId: tripId,
       inviterUserId: currentUserId,
-      inviteeEmail: inviteeEmail,
+      inviteeEmail: normalizedInviteeEmail, // Store normalized email
       proposedRole: role,
       status: InvitationStatus.pending,
       createdAt: DateTime.now(),
@@ -225,12 +467,35 @@ class CollaborativeTripService {
 
     await _invitationsCollection.doc(invitationId).set(invitation.toMap());
 
-    // Update trip's invitations list
-    await _tripsCollection.doc(tripId).update({
-      'invitations': FieldValue.arrayUnion([invitation.toMap()]),
-      'updatedAt': DateTime.now().toIso8601String(),
-      'lastUpdatedBy': currentUserId,
-    });
+    // Check if trip is in collaborative_trips collection
+    final collaborativeTripExists = await _tripsCollection
+        .doc(tripId)
+        .get()
+        .then((doc) => doc.exists);
+
+    if (collaborativeTripExists) {
+      // Update trip's invitations list in collaborative_trips
+      await _tripsCollection.doc(tripId).update({
+        'invitations': FieldValue.arrayUnion([invitation.toMap()]),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'lastUpdatedBy': currentUserId,
+      });
+    } else {
+      // If trip is in user's personal collection, also update there
+      try {
+        await _usersCollection
+            .doc(currentUserId)
+            .collection('trips')
+            .doc(tripId)
+            .update({
+              'updatedAt': DateTime.now().toIso8601String(),
+              'lastUpdatedBy': currentUserId,
+            });
+        debugPrint('Updated personal trip invitation tracking: $tripId');
+      } catch (e) {
+        debugPrint('Error updating personal trip for invitation: $e');
+      }
+    }
 
     return invitation;
   }
@@ -370,11 +635,30 @@ class CollaborativeTripService {
       throw Exception('Member not found');
     }
 
-    await _tripsCollection.doc(tripId).update({
-      'members': FieldValue.arrayRemove([memberToRemove.toMap()]),
-      'updatedAt': DateTime.now().toIso8601String(),
-      'lastUpdatedBy': currentUserId,
-    });
+    // Check if trip is in collaborative_trips collection
+    final collaborativeTripExists = await _tripsCollection
+        .doc(tripId)
+        .get()
+        .then((doc) => doc.exists);
+
+    if (collaborativeTripExists) {
+      await _tripsCollection.doc(tripId).update({
+        'members': FieldValue.arrayRemove([memberToRemove.toMap()]),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'lastUpdatedBy': currentUserId,
+      });
+    } else {
+      // Update in user's personal trips collection
+      await _usersCollection
+          .doc(currentUserId)
+          .collection('trips')
+          .doc(tripId)
+          .update({
+            'members': FieldValue.arrayRemove([memberToRemove.toMap()]),
+            'updatedAt': DateTime.now().toIso8601String(),
+            'lastUpdatedBy': currentUserId,
+          });
+    }
   }
 
   /// Update member role
@@ -408,11 +692,30 @@ class CollaborativeTripService {
       return m.userId == memberUserId ? updatedMember : m;
     }).toList();
 
-    await _tripsCollection.doc(tripId).update({
-      'members': updatedMembers.map((m) => m.toMap()).toList(),
-      'updatedAt': DateTime.now().toIso8601String(),
-      'lastUpdatedBy': currentUserId,
-    });
+    // Check if trip is in collaborative_trips collection
+    final collaborativeTripExists = await _tripsCollection
+        .doc(tripId)
+        .get()
+        .then((doc) => doc.exists);
+
+    if (collaborativeTripExists) {
+      await _tripsCollection.doc(tripId).update({
+        'members': updatedMembers.map((m) => m.toMap()).toList(),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'lastUpdatedBy': currentUserId,
+      });
+    } else {
+      // Update in user's personal trips collection
+      await _usersCollection
+          .doc(currentUserId)
+          .collection('trips')
+          .doc(tripId)
+          .update({
+            'members': updatedMembers.map((m) => m.toMap()).toList(),
+            'updatedAt': DateTime.now().toIso8601String(),
+            'lastUpdatedBy': currentUserId,
+          });
+    }
   }
 
   /// Delete trip (owner only)
@@ -433,8 +736,21 @@ class CollaborativeTripService {
 
     final batch = _firestore.batch();
 
-    // Delete trip
-    batch.delete(_tripsCollection.doc(tripId));
+    // Check if trip is in collaborative_trips collection
+    final collaborativeTripExists = await _tripsCollection
+        .doc(tripId)
+        .get()
+        .then((doc) => doc.exists);
+
+    if (collaborativeTripExists) {
+      // Delete from collaborative_trips
+      batch.delete(_tripsCollection.doc(tripId));
+    } else {
+      // Delete from user's personal trips collection
+      batch.delete(
+        _usersCollection.doc(currentUserId).collection('trips').doc(tripId),
+      );
+    }
 
     // Delete all related invitations
     final invitations = await _invitationsCollection
@@ -446,6 +762,7 @@ class CollaborativeTripService {
     }
 
     await batch.commit();
+    debugPrint('Trip deleted: $tripId');
   }
 
   /// Update trip permissions (owner only)
@@ -467,11 +784,28 @@ class CollaborativeTripService {
       throw Exception('Only trip owner can update permissions');
     }
 
-    await _tripsCollection.doc(tripId).update({
+    final updates = <String, dynamic>{
       'permissions': newPermissions.toMap(),
       'updatedAt': DateTime.now().toIso8601String(),
       'lastUpdatedBy': currentUserId,
-    });
+    };
+
+    // Check if trip is in collaborative_trips collection
+    final collaborativeTripExists = await _tripsCollection
+        .doc(tripId)
+        .get()
+        .then((doc) => doc.exists);
+
+    if (collaborativeTripExists) {
+      await _tripsCollection.doc(tripId).update(updates);
+    } else {
+      // Update in user's personal trips collection
+      await _usersCollection
+          .doc(currentUserId)
+          .collection('trips')
+          .doc(tripId)
+          .update(updates);
+    }
   }
 
   /// Leave trip (members only)
@@ -563,21 +897,43 @@ class CollaborativeTripService {
     }
   }
 
-  /// Search users for invitation (by email)
+  /// Search users for invitation (by email) with fallback strategies
   Future<AppUser?> searchUserByEmail(String email) async {
     try {
-      final querySnapshot = await _usersCollection
-          .where('email', isEqualTo: email.toLowerCase())
+      final normalizedEmail = email.toLowerCase().trim();
+      
+      // Strategy 1: Try exact match with normalized email
+      var querySnapshot = await _usersCollection
+          .where('email', isEqualTo: normalizedEmail)
           .limit(1)
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
+        debugPrint('✅ User found by exact email match: $normalizedEmail');
         return AppUser.fromMap({
           ...querySnapshot.docs.first.data() as Map<String, dynamic>,
           'uid': querySnapshot.docs.first.id,
         });
       }
 
+      // Strategy 2: Case-insensitive search (fetch and filter client-side)
+      debugPrint('⚠️ Email not found with exact match, trying case-insensitive search...');
+      querySnapshot = await _usersCollection.limit(100).get();
+
+      for (final doc in querySnapshot.docs) {
+        final docData = doc.data() as Map<String, dynamic>;
+        final storedEmail = (docData['email'] as String?)?.toLowerCase().trim();
+        
+        if (storedEmail == normalizedEmail) {
+          debugPrint('✅ User found by case-insensitive search: $normalizedEmail');
+          return AppUser.fromMap({
+            ...docData,
+            'uid': doc.id,
+          });
+        }
+      }
+
+      debugPrint('❌ User not found with email: $email');
       return null;
     } catch (e) {
       debugPrint('Error searching user: $e');

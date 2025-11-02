@@ -85,6 +85,7 @@ class TripMainInfo extends StatelessWidget {
                         ? '$budgetCurrency ${(budgetCents / 100).toStringAsFixed(2)}'
                         : '—',
                   ),
+                  _buildVisibilitySection(context, data),
                   _buildInfoSection(
                     context,
                     'Notes',
@@ -117,6 +118,62 @@ class TripMainInfo extends StatelessWidget {
     );
   }
 
+  Widget _buildVisibilitySection(
+    BuildContext context,
+    Map<String, dynamic> data,
+  ) {
+    final visibility = (data['visibility'] as String?) ?? 'private';
+    final isPublic = (data['isPublic'] as bool?) ?? false;
+    final sharedWith = (data['sharedWith'] as List?) ?? [];
+
+    String visibilityLabel = 'Private';
+    IconData visibilityIcon = Icons.lock_outline;
+    Color? visibilityColor;
+
+    if (visibility == 'community' || isPublic) {
+      visibilityLabel = 'Community (Public)';
+      visibilityIcon = Icons.public;
+      visibilityColor = Colors.green;
+    } else if (visibility == 'shared' && sharedWith.isNotEmpty) {
+      visibilityLabel = 'Shared with ${sharedWith.length} user(s)';
+      visibilityIcon = Icons.people_outline;
+      visibilityColor = Colors.blue;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Visibility', style: Theme.of(context).textTheme.titleMedium),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: () => _showVisibilityDialog(context),
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text('Change'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Icon(visibilityIcon, size: 16, color: visibilityColor),
+            const SizedBox(width: 4),
+            Text(visibilityLabel, style: TextStyle(color: visibilityColor)),
+          ],
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  void _showVisibilityDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _VisibilityDialog(tripId: tripId),
+    );
+  }
+
   String _fmtDate(DateTime d) => d.toLocal().toString().split(' ').first;
 
   DateTime? _parseDate(dynamic v) {
@@ -132,5 +189,140 @@ class TripMainInfo extends StatelessWidget {
       }
     }
     return null;
+  }
+}
+
+/// Dialog for changing trip visibility
+class _VisibilityDialog extends StatefulWidget {
+  const _VisibilityDialog({required this.tripId});
+
+  final String tripId;
+
+  @override
+  State<_VisibilityDialog> createState() => _VisibilityDialogState();
+}
+
+class _VisibilityDialogState extends State<_VisibilityDialog> {
+  String _selectedVisibility = 'private';
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentVisibility();
+  }
+
+  Future<void> _loadCurrentVisibility() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('trips')
+        .doc(widget.tripId)
+        .get();
+
+    if (doc.exists && mounted) {
+      final data = doc.data() ?? {};
+      setState(() {
+        _selectedVisibility = (data['visibility'] as String?) ?? 'private';
+      });
+    }
+  }
+
+  Future<void> _saveVisibility() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Import TripsRepository at top of file
+      final repo = FirebaseFirestore.instance;
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final tripRef = repo
+          .collection('users')
+          .doc(uid)
+          .collection('trips')
+          .doc(widget.tripId);
+
+      if (_selectedVisibility == 'private') {
+        await tripRef.update({
+          'visibility': 'private',
+          'isPublic': false,
+          'sharedWith': [],
+        });
+      } else if (_selectedVisibility == 'community') {
+        await tripRef.update({'visibility': 'community', 'isPublic': true});
+      }
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Visibility updated')));
+      }
+    } catch (e) {
+      ErrorHandlingService.instance.handleError(
+        e,
+        context: 'Update trip visibility',
+        showToUser: true,
+        userContext: context,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Change Visibility'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Radio<String>(
+            value: 'private',
+            groupValue: _selectedVisibility,
+            onChanged: _isLoading
+                ? null
+                : (value) => setState(() => _selectedVisibility = value!),
+          ),
+          const ListTile(
+            title: Text('Private'),
+            subtitle: Text('Only you can see this trip'),
+          ),
+          Radio<String>(
+            value: 'community',
+            groupValue: _selectedVisibility,
+            onChanged: _isLoading
+                ? null
+                : (value) => setState(() => _selectedVisibility = value!),
+          ),
+          const ListTile(
+            title: Text('Community (Public)'),
+            subtitle: Text('Everyone can discover this trip'),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _isLoading ? null : _saveVisibility,
+          child: _isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save'),
+        ),
+      ],
+    );
   }
 }

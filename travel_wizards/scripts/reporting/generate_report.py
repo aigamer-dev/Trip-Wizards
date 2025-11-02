@@ -61,7 +61,7 @@ def main():
         os.makedirs(outdir)
     with open(args.out, 'w') as f:
         f.write(md)
-    print('Wrote report to', args.out)
+    debugPrint('Wrote report to', args.out)
 
 if __name__ == '__main__':
     main()

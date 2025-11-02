@@ -109,8 +109,96 @@ class _AddItineraryDialogState extends State<AddItineraryDialog> {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) throw Exception('User not authenticated');
 
+      // Fetch trip data to validate itinerary dates against trip date window
+      final tripDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('trips')
+          .doc(widget.tripId)
+          .get();
+
+      if (!tripDoc.exists) {
+        throw Exception('Trip not found');
+      }
+
+      final tripData = tripDoc.data() ?? {};
+      final tripStartStr = tripData['startDate'] as String?;
+      final tripEndStr = tripData['endDate'] as String?;
+
+      // Parse trip dates
+      DateTime? tripStart;
+      DateTime? tripEnd;
+
+      if (tripStartStr != null) {
+        try {
+          tripStart = DateTime.parse(tripStartStr);
+        } catch (_) {
+          // If parsing fails, skip validation
+        }
+      }
+
+      if (tripEndStr != null) {
+        try {
+          tripEnd = DateTime.parse(tripEndStr);
+        } catch (_) {
+          // If parsing fails, skip validation
+        }
+      }
+
+      // Validate itinerary dates against trip window
       final startDateTime = _combineDateTime(_startDate, _startTime);
       final endDateTime = _combineDateTime(_endDate, _endTime);
+
+      // Check if itinerary start date is within trip window
+      if (tripStart != null &&
+          startDateTime != null &&
+          startDateTime.isBefore(tripStart)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Itinerary start date cannot be before trip start date (${tripStart.toLocal().toString().split(' ')[0]})',
+              ),
+            ),
+          );
+        }
+        setState(() => _isSubmitting = false);
+        return;
+      }
+
+      // Check if itinerary end date is after trip end date
+      if (tripEnd != null &&
+          endDateTime != null &&
+          endDateTime.isAfter(tripEnd)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Itinerary end date cannot be after trip end date (${tripEnd.toLocal().toString().split(' ')[0]})',
+              ),
+            ),
+          );
+        }
+        setState(() => _isSubmitting = false);
+        return;
+      }
+
+      // Check if itinerary start date is after trip end date (for single-day activities)
+      if (tripEnd != null &&
+          startDateTime != null &&
+          startDateTime.isAfter(tripEnd)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Itinerary start date cannot be after trip end date (${tripEnd.toLocal().toString().split(' ')[0]})',
+              ),
+            ),
+          );
+        }
+        setState(() => _isSubmitting = false);
+        return;
+      }
 
       await FirebaseFirestore.instance
           .collection('users')

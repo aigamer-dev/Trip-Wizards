@@ -135,7 +135,7 @@ class EncryptionService {
         final encryptedKey = rsaEncrypter.encrypt(base64.encode(aesKey.bytes));
         encryptedKeys[recipientId] = encryptedKey.base64;
       } catch (e) {
-        print('Error encrypting for user $recipientId: $e');
+        // Logging removed for production
         // Continue with other recipients
       }
     }
@@ -185,7 +185,7 @@ class EncryptionService {
 
       return encrypter.decrypt(encryptedMessage, iv: iv);
     } catch (e) {
-      print('Decryption error: $e');
+      // Logging removed for production
       return '[Unable to decrypt message]';
     }
   }

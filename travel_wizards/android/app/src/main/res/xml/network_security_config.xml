@@ -19,12 +19,6 @@
         
         <!-- Travel APIs (add your backend domain here) -->
         <!-- <domain includeSubdomains="true">your-api-domain.com</domain> -->
-        
-        <!-- Pin certificates for critical services -->
-        <pin-set expiration="2026-01-01">
-            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
-            <!-- Add actual certificate pins for production -->
-        </pin-set>
     </domain-config>
     
     <!-- Debug configuration - allow cleartext for emulators -->

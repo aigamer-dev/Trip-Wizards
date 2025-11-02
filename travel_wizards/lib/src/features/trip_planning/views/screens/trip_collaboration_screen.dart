@@ -540,20 +540,16 @@ class _TripCollaborationScreenState extends State<TripCollaborationScreen>
     });
 
     try {
-      await _collaborativeService.inviteUser(
+      // Directly add user as member instead of sending invitation
+      await _collaborativeService.addMember(
         tripId: trip.id,
-        inviteeEmail: _inviteEmailController.text.trim(),
+        userEmail: _inviteEmailController.text.trim(),
         role: _selectedRole,
-        message: _inviteMessageController.text.trim().isEmpty
-            ? null
-            : _inviteMessageController.text.trim(),
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: TranslatedText('Invitation sent successfully'),
-          ),
+          const SnackBar(content: TranslatedText('Member added successfully')),
         );
         _inviteEmailController.clear();
         _inviteMessageController.clear();

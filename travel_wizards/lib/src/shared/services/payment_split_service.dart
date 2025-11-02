@@ -57,6 +57,41 @@ class PaymentSplitService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Get the expenses collection reference for a trip
+  /// Expenses are stored in users/{ownerId}/trips/{tripId}/expenses
+  CollectionReference<Map<String, dynamic>> _getExpensesCollection(
+    String tripId,
+    String ownerId,
+  ) {
+    return _firestore
+        .collection('users')
+        .doc(ownerId)
+        .collection('trips')
+        .doc(tripId)
+        .collection('expenses');
+  }
+
+  /// Get trip owner ID from current user's trips
+  Future<String?> _getTripOwnerId(String tripId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    // Check if trip belongs to current user
+    final userTripDoc = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('trips')
+        .doc(tripId)
+        .get();
+
+    if (userTripDoc.exists) {
+      return user.uid;
+    }
+
+    // For now, return current user as fallback
+    return user.uid;
+  }
+
   Future<void> addExpense({
     required String tripId,
     required String description,
@@ -65,6 +100,9 @@ class PaymentSplitService {
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+
+    final ownerId = await _getTripOwnerId(tripId);
+    if (ownerId == null) return;
 
     final sharePerPerson = amount / splitAmong.length;
     final individualShares = <String, double>{};
@@ -83,24 +121,60 @@ class PaymentSplitService {
       individualShares: individualShares,
     );
 
-    await _firestore
-        .collection('trips')
-        .doc(tripId)
-        .collection('expenses')
-        .add(expense.toMap());
+    await _getExpensesCollection(tripId, ownerId).add(expense.toMap());
   }
 
-  Stream<List<Expense>> getExpenses(String tripId) {
-    return _firestore
-        .collection('trips')
-        .doc(tripId)
-        .collection('expenses')
+  Stream<List<Expense>> getExpenses(String tripId) async* {
+    final ownerId = await _getTripOwnerId(tripId);
+    if (ownerId == null) {
+      yield [];
+      return;
+    }
+
+    yield* _getExpensesCollection(tripId, ownerId)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map(
           (snapshot) =>
               snapshot.docs.map((doc) => Expense.fromFirestore(doc)).toList(),
         );
+  }
+
+  Future<void> updateExpense({
+    required String tripId,
+    required String expenseId,
+    required String description,
+    required double amount,
+    required List<String> splitAmong,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final ownerId = await _getTripOwnerId(tripId);
+    if (ownerId == null) return;
+
+    final sharePerPerson = amount / splitAmong.length;
+    final individualShares = <String, double>{};
+    for (final person in splitAmong) {
+      individualShares[person] = sharePerPerson;
+    }
+
+    await _getExpensesCollection(tripId, ownerId).doc(expenseId).update({
+      'description': description,
+      'amount': amount,
+      'splitAmong': splitAmong,
+      'individualShares': individualShares,
+    });
+  }
+
+  Future<void> deleteExpense({
+    required String tripId,
+    required String expenseId,
+  }) async {
+    final ownerId = await _getTripOwnerId(tripId);
+    if (ownerId == null) return;
+
+    await _getExpensesCollection(tripId, ownerId).doc(expenseId).delete();
   }
 
   Map<String, double> calculateBalances(

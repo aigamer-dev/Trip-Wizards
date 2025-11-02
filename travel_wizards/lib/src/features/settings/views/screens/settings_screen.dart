@@ -76,7 +76,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Symbols.cloud_sync,
               title: 'Sync & Backup',
               subtitle: 'Control how data flows across devices',
-              onTap: () {}, // Placeholder
+              onTap: () => context.pushNamed('sync_backup'),
             ),
             if (kUseRemoteIdeas) _buildRemoteIdeasToggle(),
           ],
